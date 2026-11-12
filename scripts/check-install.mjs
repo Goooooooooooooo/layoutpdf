@@ -31,9 +31,25 @@ const npm = (args, options = {}) => execFileSync('npm', args, {
   ...options,
 });
 
-// `--ignore-scripts` keeps `prepare` from rebuilding (and printing build output
-// into the JSON channel); `npm run build` has already produced `dist/`.
-const [pack] = JSON.parse(execFileSync('npm', ['pack', '--json', '--ignore-scripts'], { encoding: 'utf8' }));
+// npm 11 honours `--ignore-scripts` here, npm 10 (Node 22, what CI runs) still
+// executes `prepare`, so the build log lands in the same stream as the JSON.
+// Take the last parseable JSON array instead of assuming it is the whole stdout.
+function parsePackOutput(raw) {
+  for (let i = raw.lastIndexOf('['); i !== -1; i = raw.lastIndexOf('[', i - 1)) {
+    try {
+      const parsed = JSON.parse(raw.slice(i));
+      if (Array.isArray(parsed) && parsed[0]?.filename) return parsed;
+    } catch {
+      // Not the payload; keep scanning towards the front.
+    }
+  }
+  throw new Error('npm pack did not print the expected JSON');
+}
+
+// `--ignore-scripts` avoids a redundant rebuild on npm that honour it.
+const [pack] = parsePackOutput(
+  execFileSync('npm', ['pack', '--json', '--ignore-scripts'], { encoding: 'utf8' }),
+);
 const tarball = resolve(root, pack.filename);
 const project = mkdtempSync(join(tmpdir(), 'layoutpdf-install-'));
 

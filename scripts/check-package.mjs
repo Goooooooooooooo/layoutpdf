@@ -19,10 +19,24 @@ function fail(message) {
 }
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-// `--ignore-scripts` keeps `prepare` from rebuilding (and printing build output
-// into the JSON channel); `npm run build` has already produced `dist/`.
+
+// npm 11 honours `--ignore-scripts` here, npm 10 (Node 22, what CI runs) still
+// executes `prepare`, so the build log lands in the same stream as the JSON.
+// Take the last parseable JSON array instead of assuming it is the whole stdout.
+function parsePackOutput(raw) {
+  for (let i = raw.lastIndexOf('['); i !== -1; i = raw.lastIndexOf('[', i - 1)) {
+    try {
+      const parsed = JSON.parse(raw.slice(i));
+      if (Array.isArray(parsed) && parsed[0]?.filename) return parsed;
+    } catch {
+      // Not the payload; keep scanning towards the front.
+    }
+  }
+  throw new Error('npm pack did not print the expected JSON');
+}
+
 const raw = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { encoding: 'utf8' });
-const [pack] = JSON.parse(raw);
+const [pack] = parsePackOutput(raw);
 const files = new Map(pack.files.map(file => [file.path, file.size]));
 const has = path => files.has(path);
 
