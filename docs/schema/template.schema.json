@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://layoutpdf.dev/schema/template.schema.json",
+  "title": "LayoutPDF template file",
+  "description": "Serialized `layoutpdf-template` v3 document accepted by layoutpdf.",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "const": "layoutpdf-template"
+    },
+    "version": {
+      "type": "number",
+      "const": 3
+    },
+    "template": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "number",
+          "const": 3
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "author": {
+              "type": "string"
+            },
+            "subject": {
+              "type": "string"
+            },
+            "language": {
+              "type": "string"
+            }
+          }
+        },
+        "pages": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "size": {
+                "type": "object",
+                "properties": {
+                  "width": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "height": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "width",
+                  "height"
+                ]
+              },
+              "padding": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                ],
+                "items": false,
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "background": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "blank"
+                      },
+                      "color": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "pdf"
+                      },
+                      "assetId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pageIndex": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "assetId",
+                      "pageIndex"
+                    ]
+                  }
+                ]
+              },
+              "elements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "type": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "box": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        },
+                        "width": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "height": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "width",
+                        "height"
+                      ]
+                    },
+                    "rotate": {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    "opacity": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "locked": {
+                      "type": "boolean"
+                    },
+                    "hidden": {
+                      "type": "boolean"
+                    },
+                    "presetId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "groupId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "value": {
+                      "$ref": "#/$defs/__schema0"
+                    },
+                    "binding": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "required": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "key"
+                      ]
+                    },
+                    "props": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "box",
+                    "rotate",
+                    "opacity",
+                    "locked",
+                    "hidden",
+                    "value",
+                    "props"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "size",
+              "padding",
+              "background",
+              "elements"
+            ]
+          }
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "name",
+        "pages"
+      ]
+    },
+    "assets": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "pdf"
+              },
+              "name": {
+                "type": "string"
+              },
+              "mimeType": {
+                "type": "string",
+                "const": "application/pdf"
+              },
+              "dataEncoding": {
+                "type": "string",
+                "const": "base64"
+              },
+              "data": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "kind",
+              "name",
+              "mimeType",
+              "dataEncoding",
+              "data"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "image"
+              },
+              "name": {
+                "type": "string"
+              },
+              "mimeType": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "image/png"
+                  },
+                  {
+                    "type": "string",
+                    "const": "image/jpeg"
+                  }
+                ]
+              },
+              "dataEncoding": {
+                "type": "string",
+                "const": "base64"
+              },
+              "data": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "kind",
+              "name",
+              "mimeType",
+              "dataEncoding",
+              "data"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "template",
+    "assets"
+  ],
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0"
+          }
+        }
+      ]
+    }
+  }
+}

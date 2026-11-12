@@ -1,0 +1,171 @@
+.layoutpdf-help-page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--layoutpdf-color-workspace);
+  color: var(--layoutpdf-color-text);
+}
+
+.layoutpdf-help-toc {
+  min-width: 0;
+  overflow: auto;
+  padding: 24px 16px;
+  border-right: 1px solid var(--layoutpdf-color-border);
+  background: var(--layoutpdf-color-surface);
+}
+
+.layoutpdf-help-toc h2 {
+  margin: 0 8px 12px;
+  color: var(--layoutpdf-color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.layoutpdf-help-toc-list {
+  display: grid;
+  gap: 4px;
+}
+
+.layoutpdf-help-toc-list button {
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--layoutpdf-color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+}
+
+.layoutpdf-help-toc-list button:hover {
+  background: var(--layoutpdf-color-surface-subtle);
+  color: var(--layoutpdf-color-text);
+}
+
+.layoutpdf-help-toc-list button[aria-current="page"] {
+  background: var(--layoutpdf-color-primary-subtle);
+  color: var(--layoutpdf-color-primary);
+  font-weight: 700;
+}
+
+.layoutpdf-help-toc-list button:focus-visible {
+  outline: 2px solid var(--layoutpdf-color-primary-focus);
+  outline-offset: 1px;
+}
+
+.layoutpdf-help-article-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 32px 24px 64px;
+}
+
+.layoutpdf-help-article {
+  width: min(840px, 100%);
+  margin: 0 auto;
+  padding: 32px 40px 48px;
+  border: 1px solid var(--layoutpdf-color-border);
+  border-radius: 10px;
+  background: var(--layoutpdf-color-surface);
+  box-shadow: var(--layoutpdf-shadow-soft);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.layoutpdf-help-article h1,
+.layoutpdf-help-article h2,
+.layoutpdf-help-article h3 {
+  color: var(--layoutpdf-color-text);
+  line-height: 1.35;
+}
+
+.layoutpdf-help-article h1 { margin: 0 0 24px; font-size: 28px; }
+.layoutpdf-help-article h2 { margin: 36px 0 12px; font-size: 20px; }
+.layoutpdf-help-article h3 { margin: 28px 0 10px; font-size: 16px; }
+.layoutpdf-help-article p { margin: 12px 0; }
+.layoutpdf-help-article ul,
+.layoutpdf-help-article ol { padding-left: 24px; }
+.layoutpdf-help-article li + li { margin-top: 6px; }
+.layoutpdf-help-article a { color: var(--layoutpdf-color-primary); text-underline-offset: 3px; }
+.layoutpdf-help-article strong { font-weight: 700; }
+.layoutpdf-help-article blockquote {
+  margin: 20px 0;
+  padding: 4px 16px;
+  border-left: 3px solid var(--layoutpdf-color-primary);
+  background: var(--layoutpdf-color-primary-subtle);
+  color: var(--layoutpdf-color-text-muted);
+}
+.layoutpdf-help-article img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 20px auto 28px;
+  border: 1px solid var(--layoutpdf-color-border);
+  border-radius: 8px;
+  box-shadow: var(--layoutpdf-shadow-soft);
+}
+.layoutpdf-help-article code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--layoutpdf-color-workspace);
+  font-size: .9em;
+}
+.layoutpdf-help-article pre {
+  max-width: 100%;
+  overflow: auto;
+  padding: 14px 16px;
+  border-radius: 6px;
+  background: var(--layoutpdf-color-ink);
+  color: var(--layoutpdf-color-text-inverse);
+}
+.layoutpdf-help-article pre code { padding: 0; background: transparent; }
+.layoutpdf-help-article table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+.layoutpdf-help-article th,
+.layoutpdf-help-article td {
+  padding: 8px 10px;
+  border: 1px solid var(--layoutpdf-color-border);
+  text-align: left;
+}
+
+@media (max-width: 760px) {
+  .layoutpdf-help-page {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .layoutpdf-help-toc {
+    overflow-x: auto;
+    padding: 10px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--layoutpdf-color-border);
+  }
+  .layoutpdf-help-toc h2 { display: none; }
+  .layoutpdf-help-toc-list {
+    display: flex;
+    gap: 6px;
+    width: max-content;
+  }
+  .layoutpdf-help-toc-list button {
+    width: auto;
+    min-height: 40px;
+    white-space: nowrap;
+  }
+  .layoutpdf-help-article-scroll { padding: 16px 12px 40px; }
+  .layoutpdf-help-article {
+    padding: 24px 20px 36px;
+    border-radius: 8px;
+  }
+  .layoutpdf-help-article h1 { font-size: 23px; }
+}

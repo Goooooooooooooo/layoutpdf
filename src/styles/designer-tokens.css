@@ -1,0 +1,112 @@
+/* Theme tokens required by the standalone Designer. */
+:root {
+  font-family: Inter, "Noto Sans JP", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+
+  /* Semantic palette: ink, paper, bamboo-green accent. */
+  --layoutpdf-color-ink: #202321;
+  --layoutpdf-color-text: #292b29;
+  --layoutpdf-color-text-muted: #787c78;
+  --layoutpdf-color-text-subtle: #7f847f;
+  --layoutpdf-color-text-inverse: #ffffff;
+  --layoutpdf-color-text-inverse-muted: #d6d9d4;
+  --layoutpdf-color-surface: #fafaf8;
+  --layoutpdf-color-surface-translucent: #fafaf8ed;
+  --layoutpdf-color-surface-subtle: #f5f6f4;
+  --layoutpdf-color-surface-warm: #f7f1ec;
+  --layoutpdf-color-page: #ffffff;
+  /* Workspace bg tracks the warm Paper token; revert this single line to return to the cold neutral. */
+  --layoutpdf-color-workspace: var(--layoutpdf-color-paper);
+  --layoutpdf-color-canvas: #edefe6;
+  --layoutpdf-color-border: #d6dad4;
+  --layoutpdf-color-border-soft: #e4e6e2;
+  --layoutpdf-color-border-strong: #c5cac3;
+  --layoutpdf-color-header: #202124;          /* Ink */
+  --layoutpdf-color-header-hover: #2c2f2b;
+  --layoutpdf-color-header-border: #3a3d38;
+  --layoutpdf-color-header-divider: #3a3d38;
+  --layoutpdf-color-paper: #f8f7f4;            /* Warm Paper (design doc) */
+  --layoutpdf-color-green-light: #65a30d;       /* Light green accent — reserved for micro-states (e.g. saved pulse) */
+  --layoutpdf-color-border-pale: #e5e7eb;       /* Pale border (reserved; warm border remains the default) */
+  --layoutpdf-color-primary: #2f7d4a;
+  --layoutpdf-color-primary-hover: #286c40;
+  --layoutpdf-color-primary-active: #215b36;
+  --layoutpdf-color-primary-subtle: #daf0e0;
+  --layoutpdf-color-primary-border: #b6dcc2;
+  --layoutpdf-color-primary-focus: #3f965c;
+  --layoutpdf-color-flame: #90e4a8;
+  --layoutpdf-color-command: #90e4a8;
+  --layoutpdf-color-command-hover: #80d498;
+  --layoutpdf-color-command-active: #72c888;
+  --layoutpdf-color-command-border: #90e4a8;
+  --layoutpdf-color-command-text: #182326;
+  --layoutpdf-color-success: #4fa873;
+  --layoutpdf-color-success-subtle: #e8f1eb;
+  --layoutpdf-color-warning: #94631f;
+  --layoutpdf-color-warning-subtle: #f7f0df;
+  --layoutpdf-color-danger: #c54232;
+  --layoutpdf-color-danger-hover: #aa3829;
+  --layoutpdf-color-danger-subtle: #f8ebe7;
+  --layoutpdf-color-info: #2f7d4a;
+  --layoutpdf-color-info-subtle: #daf0e0;
+  --layoutpdf-color-overlay: #20232170;
+  --layoutpdf-color-guide-snap: #9a5271;
+  --layoutpdf-color-marquee: #6abe801f;
+  --layoutpdf-color-grid: #20232114;
+  --layoutpdf-color-chrome-outline: #2023211f;
+  --layoutpdf-color-chrome-outline-strong: #20232142;
+  --layoutpdf-color-chrome-hidden: #2023210a;
+  --layoutpdf-color-page-guide: #7d5b3480;
+  --layoutpdf-color-primary-pulse: #6abe8026;
+  --layoutpdf-color-primary-pulse-soft: #6abe8017;
+  --layoutpdf-color-command-pulse: #90e4a826;
+  --layoutpdf-color-command-pulse-soft: #90e4a817;
+  --layoutpdf-color-surface-outline: #fffffff0;
+  --layoutpdf-color-ruler-surface: #f3f4f1d6;
+  --layoutpdf-color-ruler-border: #20232124;
+  --layoutpdf-color-label-border: #20232114;
+
+  --layoutpdf-shadow-soft: 0 8px 24px #2023210d;
+  --layoutpdf-shadow-card: 0 12px 32px #20232114;
+  --layoutpdf-shadow-popover: 0 8px 20px #20232124;
+  --layoutpdf-shadow-header: 0 1px 0 #2023212b;
+  --layoutpdf-shadow-page: 0 3px 12px #2023211f;
+  --layoutpdf-shadow-page-active: 0 0 0 1px var(--layoutpdf-color-border-strong), 0 10px 28px #2023212b;
+  --layoutpdf-shadow-control: 0 2px 8px #00000014;
+  --layoutpdf-shadow-menu: 0 3px 10px #0000001a;
+
+  --layoutpdf-z-ruler: 1;
+  --layoutpdf-z-page-guide: 2;
+  --layoutpdf-z-element-chrome: 3;
+  --layoutpdf-z-selected-element-chrome: 4;
+  --layoutpdf-z-marquee: 4;
+  --layoutpdf-z-handle: 5;
+  --layoutpdf-z-designer: 10000;
+  --layoutpdf-z-canvas-toolbar: 15000;
+  --layoutpdf-z-snap-guide: 20000;
+  --layoutpdf-z-property-work-page: 25000;
+  --layoutpdf-z-dialog: 30000;
+  --layoutpdf-z-popover: 35000;
+  --layoutpdf-z-toast: 40000;
+
+  color: var(--layoutpdf-color-text);
+  background: var(--layoutpdf-color-workspace);
+
+}
+
+/* Scope the app reset to the Web Component; leave the host page untouched. */
+layoutpdf-designer {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 760px;
+  min-height: 640px;
+}
+layoutpdf-designer,
+layoutpdf-designer * { box-sizing: border-box; }
+layoutpdf-designer button,
+layoutpdf-designer input,
+layoutpdf-designer select,
+layoutpdf-designer textarea { font: inherit; letter-spacing: 0; }
+layoutpdf-designer button { cursor: pointer; }
+layoutpdf-designer button:disabled { cursor: not-allowed; opacity: 0.45; }

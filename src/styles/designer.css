@@ -1,0 +1,53 @@
+.layoutpdf-page-background { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.layoutpdf-background-error { position: absolute; inset: 0; display: grid; place-items: center; color: var(--layoutpdf-color-danger); background: var(--layoutpdf-color-danger-subtle); font-size: 12px; }
+.layoutpdf-designer-chrome { position: absolute; inset: 0; z-index: var(--layoutpdf-z-designer); cursor: crosshair; user-select: none; }
+.layoutpdf-designer-grid { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(to right, var(--layoutpdf-color-grid) 1px, transparent 1px), linear-gradient(to bottom, var(--layoutpdf-color-grid) 1px, transparent 1px); }
+
+.layoutpdf-ruler { position: absolute; z-index: var(--layoutpdf-z-ruler); pointer-events: none; color: var(--layoutpdf-color-text-muted); font-size: 8px; background: var(--layoutpdf-color-ruler-surface); }
+.layoutpdf-ruler-horizontal { top: 0; left: 0; right: 0; height: 13px; border-bottom: 1px solid var(--layoutpdf-color-ruler-border); }
+.layoutpdf-ruler-vertical { top: 0; bottom: 0; left: 0; width: 13px; border-right: 1px solid var(--layoutpdf-color-ruler-border); }
+.layoutpdf-ruler-horizontal span { position: absolute; top: 1px; transform: translateX(2px); }
+.layoutpdf-ruler-vertical span { position: absolute; left: 1px; transform: translateY(2px); writing-mode: vertical-rl; }
+
+.layoutpdf-page-padding-guide { position: absolute; z-index: var(--layoutpdf-z-page-guide); pointer-events: none; border: 1px dashed var(--layoutpdf-color-page-guide); }
+
+.layoutpdf-snap-guide { position: absolute; z-index: var(--layoutpdf-z-snap-guide); pointer-events: none; background: var(--layoutpdf-color-guide-snap); }
+.layoutpdf-snap-guide.vertical { top: 0; bottom: 0; width: 1px; }
+.layoutpdf-snap-guide.horizontal { left: 0; right: 0; height: 1px; }
+
+.layoutpdf-selection-marquee { position: absolute; z-index: var(--layoutpdf-z-marquee); pointer-events: none; border: 1px solid var(--layoutpdf-color-primary); background: var(--layoutpdf-color-marquee); }
+.layoutpdf-element-group-outline { position: absolute; z-index: var(--layoutpdf-z-element-chrome); pointer-events: none; border: 1px dashed var(--layoutpdf-color-primary); outline: 3px solid var(--layoutpdf-color-primary-pulse-soft); }
+.layoutpdf-element-group-outline.locked { border-color: var(--layoutpdf-color-text-muted); outline-color: var(--layoutpdf-color-chrome-outline); }
+
+.layoutpdf-element-chrome { position: absolute; z-index: var(--layoutpdf-z-element-chrome); border: 2px solid var(--layoutpdf-color-chrome-outline); background: transparent; transform-origin: center; touch-action: none; cursor: move; }
+.layoutpdf-element-chrome:hover { border-color: var(--layoutpdf-color-text-muted); border-style: dashed; box-shadow: 0 0 0 1px var(--layoutpdf-color-surface-outline); }
+.layoutpdf-element-chrome.empty:not(.selected) { border-color: var(--layoutpdf-color-chrome-outline-strong); border-style: dashed; }
+.layoutpdf-element-chrome.selected { z-index: var(--layoutpdf-z-selected-element-chrome); border-color: var(--layoutpdf-color-primary); outline: 1px solid var(--layoutpdf-color-surface-outline); }
+.layoutpdf-element-chrome.duplicating { border-style: dashed; box-shadow: 0 0 0 2px var(--layoutpdf-color-primary-pulse-soft); }
+.layoutpdf-element-chrome.locked { cursor: not-allowed; }
+.layoutpdf-element-chrome.locked:not(.selected) { border-color: var(--layoutpdf-color-border); border-style: dashed; }
+.layoutpdf-element-chrome.hidden { background: var(--layoutpdf-color-chrome-hidden); border-style: dashed; }
+.layoutpdf-element-placeholder { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 4px; overflow: hidden; color: var(--layoutpdf-color-text-muted); font-size: 10px; white-space: nowrap; text-overflow: ellipsis; opacity: 0.72; pointer-events: none; }
+
+.layoutpdf-resize-handle, .layoutpdf-rotate-handle { position: absolute; width: 8px; height: 8px; padding: 0; border: 1.5px solid var(--layoutpdf-color-primary); background: var(--layoutpdf-color-page); box-sizing: border-box; z-index: var(--layoutpdf-z-handle); }
+.layoutpdf-resize-handle-se { right: -5px; bottom: -5px; cursor: nwse-resize; }
+.layoutpdf-resize-handle-sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
+.layoutpdf-resize-handle-ne { right: -5px; top: -5px; cursor: nesw-resize; }
+.layoutpdf-resize-handle-nw { left: -5px; top: -5px; cursor: nwse-resize; }
+.layoutpdf-resize-handle-e  { right: -5px; top: calc(50% - 4px); cursor: ew-resize; }
+.layoutpdf-resize-handle-w  { left: -5px; top: calc(50% - 4px); cursor: ew-resize; }
+.layoutpdf-resize-handle-s  { bottom: -5px; left: calc(50% - 4px); cursor: ns-resize; }
+.layoutpdf-resize-handle-n  { top: -5px; left: calc(50% - 4px); cursor: ns-resize; }
+.layoutpdf-rotate-handle { left: calc(50% - 5px); top: -24px; width: 10px; height: 10px; border-radius: 50%; cursor: grab; border-width: 1px; }
+.layoutpdf-rotate-handle::after { content: ""; position: absolute; left: 4px; top: 9px; width: 1px; height: 10px; background: var(--layoutpdf-color-primary); }
+.layoutpdf-delete-handle { position: absolute; right: -6px; top: -30px; z-index: var(--layoutpdf-z-handle); }
+.layoutpdf-delete-handle:hover { background: var(--layoutpdf-color-danger); color: var(--layoutpdf-color-surface); }
+
+.layoutpdf-render-page {
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--layoutpdf-shadow-page);
+}
+.layoutpdf-render-page[data-active-page="true"] {
+  box-shadow: var(--layoutpdf-shadow-page-active);
+}

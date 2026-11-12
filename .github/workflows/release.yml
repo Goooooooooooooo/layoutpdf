@@ -1,0 +1,51 @@
+name: Release
+
+# Publishing is tag-driven: `npm version patch && git push --follow-tags` runs
+# every gate below, then publishes to npm with a signed provenance statement.
+#
+# Required repository secret: NPM_TOKEN (an npm automation token).
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+
+      # Tests and golden PDFs need the Noto CJK pair; it is not committed.
+      - run: npm run fonts:fetch
+
+      - name: Verify the tag matches package.json
+        if: github.event_name == 'push'
+        run: |
+          node -e "
+          const { version } = require('./package.json');
+          const tag = process.env.GITHUB_REF_NAME.replace(/^v/, '');
+          if (version !== tag) {
+            console.error('Tag ' + tag + ' does not match package.json version ' + version);
+            process.exit(1);
+          }
+          "
+
+      # prepublishOnly re-runs typecheck, tests, build, the dist smoke test,
+      # the tarball contract check, publint, and arethetypeswrong.
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

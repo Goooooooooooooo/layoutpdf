@@ -1,0 +1,28 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "outDir": "dist/types",
+    "rootDir": "src"
+  },
+  "include": [
+    "src/index.ts",
+    "src/core.ts",
+    "src/pdf.ts",
+    "src/pdf-node.ts",
+    "src/pdf-worker.ts",
+    "src/plugins.ts",
+    "src/plugins/basic.ts",
+    "src/plugins/business.ts",
+    "src/preview-react.tsx",
+    "src/preview-dom.ts",
+    "src/presets/index.ts",
+    "src/i18n.ts",
+    "src/defaultEngine.ts",
+    "src/designer/index.ts"
+  ],
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+}

@@ -1,0 +1,40 @@
+.layoutpdf-designer {
+  display: flex;
+  flex-direction: column;
+  min-width: 760px;
+  min-height: 640px;
+  height: 100%;
+  color: #20232a;
+  background: #f3f4f6;
+  font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.layoutpdf-designer-toolbar {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid #d9dce2;
+  background: #fff;
+}
+.layoutpdf-designer-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layoutpdf-designer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.layoutpdf-designer-actions button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.layoutpdf-designer-actions button:hover:not(:disabled) { background: #f7f8fa; }
+.layoutpdf-designer-actions button:disabled { cursor: wait; opacity: 0.6; }
+.layoutpdf-designer-error { padding: 8px 16px; color: #b42318; background: #fef3f2; }
+.layoutpdf-designer > .layoutpdf-workspace { flex: 1; min-height: 0; }
+@media (max-width: 900px) {
+  .layoutpdf-designer { min-width: 0; }
+  .layoutpdf-designer-toolbar { align-items: flex-start; flex-direction: column; padding: 10px 12px; }
+}

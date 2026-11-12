@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.tgz
+.DS_Store
+*.tsbuildinfo
+examples/node/out/
+# Font binaries are development assets, not part of the published package.
+public/fonts/*.otf
+public/fonts/*.ttf
