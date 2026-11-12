@@ -101,7 +101,7 @@ export const invoicePreset: ElementPreset = {
 
     const bank = create('text', 0, 213) as TextElement;
     bank.name = '振込先';
-    bank.value = '〇〇銀行 〇〇支店\n普通 0000000\nカ）モルドクラフト';
+    bank.value = '〇〇銀行 〇〇支店\n普通 0000000\nカ）ヤマダデザイン';
     bank.binding = { key: 'bankInfo' };
     bank.box = { ...bank.box, width: 95, height: 24 };
     Object.assign(textStyle(bank), { fontSize: 9, multiline: true });

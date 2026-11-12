@@ -1,6 +1,18 @@
 # LayoutPDF
 
-Browser and WebView template layout and PDF rendering engine. It provides a core rendering pipeline, a visual designer, built-in plugins, and extension points for custom plugins, renderers, fonts, and storage.
+[![CI](https://github.com/Goooooooooooooo/layoutpdf/actions/workflows/ci.yml/badge.svg)](https://github.com/Goooooooooooooo/layoutpdf/actions/workflows/ci.yml)
+
+Design document layouts on a canvas and export them as PDF — in the browser, an
+embedded WebView, or Node.
+
+**[Live demo](https://goooooooooooooo.github.io/layoutpdf/)** — the designer
+running on GitHub Pages; nothing to install.
+
+![The LayoutPDF designer editing a Japanese invoice template](./docs/images/designer.png)
+
+![The same template rendered with real input in preview mode](./docs/images/invoice-preview.png)
+
+It provides a core rendering pipeline, a visual designer, built-in plugins, and extension points for custom plugins, renderers, fonts, and storage.
 
 - **Layout designer** — drag-and-drop template authoring with a framework-independent Custom Element.
 - **Render core** — template + input → `RenderDocument` → laid-out pages, shared by preview and PDF.
@@ -604,6 +616,10 @@ npm run dev:worker-example
 
 `npm run verify` repeats the typecheck, tests, build, and all three
 distribution checks, so run it before tagging a release.
+
+The live demo is `examples/designer`, built with `EXAMPLE_BASE=/layoutpdf/` and
+published by `.github/workflows/pages.yml` on every push to `main`. The same
+build without that variable serves the demo at the site root.
 
 The package targets browsers, embedded WebViews, and Node. Node/headless PDF is
 available through `layoutpdf/pdf/node`.

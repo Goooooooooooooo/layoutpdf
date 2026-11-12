@@ -1,0 +1,54 @@
+name: Demo
+
+# Builds examples/designer and publishes it to GitHub Pages, so the designer can
+# be tried without cloning the repository. The fonts are not committed, so the
+# workflow fetches them and Vite copies public/ (fonts + license notices) into
+# the demo output.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run fonts:fetch
+
+      - run: npm run build
+
+      - name: Build the designer demo
+        env:
+          # Project sites are served from /<repo>/; main.ts reads import.meta.env.BASE_URL.
+          EXAMPLE_BASE: /layoutpdf/
+        run: npx vite build --config examples/designer/vite.config.ts
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: examples/designer/dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
