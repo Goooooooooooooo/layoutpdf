@@ -30,7 +30,7 @@ The package is distributed from this repository, not from npm. Install it
 straight from Git — the `prepare` script builds it during install:
 
 ```sh
-npm install github:Goooooooooooooo/layoutpdf#v0.1.0
+npm install github:Goooooooooooooo/layoutpdf#v0.1.1
 ```
 
 Pin a tag or commit so installs stay reproducible. `#main` also works, but it
@@ -71,7 +71,7 @@ ships no global script build, so a bundler is required. With Vite:
 
 ```sh
 npm create vite@latest my-app -- --template vanilla-ts
-cd my-app && npm install github:Goooooooooooooo/layoutpdf#v0.1.0
+cd my-app && npm install github:Goooooooooooooo/layoutpdf#v0.1.1
 mkdir -p public/fonts
 cp node_modules/layoutpdf/dist/fonts/hb-subset.wasm public/fonts/
 curl -LO --output-dir public/fonts \

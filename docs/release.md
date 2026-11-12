@@ -8,11 +8,11 @@ install the resulting package.
 
 | Route | Command | When to use |
 | --- | --- | --- |
-| Git dependency | `npm install github:Goooooooooooooo/layoutpdf#v0.1.0` | Fastest. The `prepare` script builds the package during install. |
+| Git dependency | `npm install github:Goooooooooooooo/layoutpdf#v0.1.1` | Fastest. The `prepare` script builds the package during install. |
 | Packed tarball | clone, `npm ci`, `npm run build`, `npm pack`, then `npm install ./layoutpdf-0.1.0.tgz` | Offline builds, vendoring, or auditing the exact artifact. |
 | Local link | `npm install ../layoutpdf` | Active co-development. npm does not build `file:` dependencies, so run `npm run build` in the checkout and again after each pull. |
 
-Always pin a tag or commit (`#v0.1.0`), not `#main`, so an install is
+Always pin a tag or commit (`#v0.1.1`), not `#main`, so an install is
 reproducible.
 
 ## What a build produces
@@ -81,8 +81,8 @@ the same commands, so a tag is only worth cutting from a green `main`.
 7. Commit, then tag and push:
 
 ```sh
-git tag v0.1.0
+git tag "v$(node -p "require('./package.json').version")"
 git push --follow-tags
 ```
 
-The tag is what consumers pin in `github:Goooooooooooooo/layoutpdf#v0.1.0`.
+The tag is what consumers pin in `github:Goooooooooooooo/layoutpdf#v0.1.1`.

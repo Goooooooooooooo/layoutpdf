@@ -5,6 +5,20 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/). See [`docs/release.md`](./docs/release.md)
 for the pre-1.0 version policy.
 
+## [0.1.1] - 2026-11-12
+
+### Added
+
+- Screenshots of the designer and of preview mode in the README.
+- `examples/designer` is published to GitHub Pages by
+  `.github/workflows/pages.yml` and seeds the invoice preset with sample input,
+  so the demo shows a real document instead of two blank elements.
+
+### Fixed
+
+- The invoice preset no longer puts an old placeholder company name in the bank
+  transfer line.
+
 ## [0.1.0] - 2026-11-12
 
 First public release.
