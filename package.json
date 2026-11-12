@@ -107,13 +107,14 @@
     "check:tarball": "node scripts/check-package.mjs",
     "check:install": "node scripts/check-install.mjs",
     "check:dist": "npm run smoke && npm run check:tarball && npm run check:install && npm run check:package",
+    "verify": "npm run check && npm run build && npm run check:dist",
     "dev:example": "npm run build && vite --config examples/designer/vite.config.ts",
     "dev:core-example": "npm run build && vite --config examples/quickstart/vite.config.ts",
     "dev:worker-example": "npm run build && vite --config examples/worker/vite.config.ts",
     "dev:node-example": "npm run build && tsx examples/node/quote.ts",
     "docs:schema": "tsx scripts/generate-schema.ts",
     "fonts:fetch": "node scripts/fetch-fonts.mjs",
-    "prepublishOnly": "npm run check && npm run build && npm run check:dist"
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",

@@ -508,7 +508,7 @@ validate
 - ✅ headless 模板编辑 API（`TemplateEditor`：add/update/remove/move/duplicate）。
 - ✅ 字体拆包：npm 包不再携带 32MB Noto CJK 字体，按需 `npm run fonts:fetch` 或自托管。
 - ✅ `license`、`sideEffects`、CHANGELOG、版本策略与发布清单。
-- ✅ `prepublishOnly` + CI 字体准备。
+- ✅ `npm run verify` 门禁（类型、测试、构建、tarball 契约、真实安装）与 CI。
 - 示例矩阵。
 - Playground。
 - 发布 0.2 / 1.0。

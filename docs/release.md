@@ -1,4 +1,31 @@
-# Release and versioning
+# Distribution and versioning
+
+This package is distributed from its Git repository. There is no npm
+publication: consumers clone it (or install it straight from Git), build it, and
+install the resulting package.
+
+## How consumers get it
+
+| Route | Command | When to use |
+| --- | --- | --- |
+| Git dependency | `npm install github:Goooooooooooooo/layoutpdf#v0.1.0` | Fastest. The `prepare` script builds the package during install. |
+| Packed tarball | clone, `npm ci`, `npm run build`, `npm pack`, then `npm install ./layoutpdf-0.1.0.tgz` | Offline builds, vendoring, or auditing the exact artifact. |
+| Local link | `npm install ../layoutpdf` | Active co-development. npm does not build `file:` dependencies, so run `npm run build` in the checkout and again after each pull. |
+
+Always pin a tag or commit (`#v0.1.0`), not `#main`, so an install is
+reproducible.
+
+## What a build produces
+
+`npm run build` writes the published layout to `dist/`: one ESM entry per
+`package.json#exports` target, the `.d.ts` tree under `dist/types`, and the
+HarfBuzz subsetter wasm under `dist/fonts`. Nothing else in the repository is
+consumed by an install, so `dist/` stays out of Git and `npm run build` is
+required after a clone.
+
+`prepare` runs that build automatically during `npm install`, `npm pack`, and a
+Git-dependency install. In a fresh checkout it means `npm ci` already leaves a
+usable `dist/`.
 
 ## Version policy
 
@@ -40,35 +67,22 @@ break between patch releases.
 | Tarball contract | `npm run check:tarball` | Exports resolve to shipped files, no font binaries, no `src`/tests/examples, size budgets |
 | Package metadata | `npm run check:package` | `publint` and `arethetypeswrong` (`esm-only` profile) |
 
-`npm run check:dist` runs the last four. `prepublishOnly` runs all of them, so
-`npm publish` cannot ship a broken tarball.
+`npm run verify` chains all of them (`check` + `build` + `check:dist`). CI runs
+the same commands, so a tag is only worth cutting from a green `main`.
 
-## Release checklist
+## Cutting a release
 
-1. `npm ci`
+1. `npm ci` (runs `prepare`, so `dist/` exists)
 2. `npm run fonts:fetch` (development/test fonts are not committed)
-3. `npm run check`
-4. `npm run build`
-5. `npm run check:dist`
-6. Build the examples:
-   `npx vite build --config examples/quickstart/vite.config.ts`,
-   `npx vite build --config examples/worker/vite.config.ts`,
-   `npx vite build --config examples/designer/vite.config.ts`
-7. Update [`CHANGELOG.md`](../CHANGELOG.md) and the version in `package.json`.
-8. `npm run docs:schema` and commit the regenerated schema if it changed.
-9. `npm pack --dry-run` and confirm the tarball does not contain font binaries.
-10. `npm publish`
-
-## Tag-driven publishing
-
-`.github/workflows/release.yml` publishes on any `v*` tag:
+3. `npm run verify`
+4. Update [`CHANGELOG.md`](../CHANGELOG.md) and the version in `package.json`.
+5. `npm run docs:schema` and commit the regenerated schema if it changed.
+6. `npm pack --dry-run` and confirm the tarball has no font binaries.
+7. Commit, then tag and push:
 
 ```sh
-npm version patch        # or minor / major
+git tag v0.1.0
 git push --follow-tags
 ```
 
-The workflow verifies that the tag matches `package.json`, installs fonts, then
-runs `npm publish --provenance`, which triggers `prepublishOnly`. Provenance
-requires the `id-token: write` permission already set in the workflow and an
-`NPM_TOKEN` repository secret.
+The tag is what consumers pin in `github:Goooooooooooooo/layoutpdf#v0.1.0`.

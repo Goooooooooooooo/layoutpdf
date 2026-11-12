@@ -19,7 +19,9 @@ function fail(message) {
 }
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-const raw = execFileSync('npm', ['pack', '--dry-run', '--json'], { encoding: 'utf8' });
+// `--ignore-scripts` keeps `prepare` from rebuilding (and printing build output
+// into the JSON channel); `npm run build` has already produced `dist/`.
+const raw = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { encoding: 'utf8' });
 const [pack] = JSON.parse(raw);
 const files = new Map(pack.files.map(file => [file.path, file.size]));
 const has = path => files.has(path);

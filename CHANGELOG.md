@@ -13,14 +13,16 @@ for the pre-1.0 version policy.
   `exports` target exists, `sideEffects` entries exist, no font binaries or
   `src`/tests/examples leak, and packed/unpacked sizes stay within budget.
 - `npm run check:package` runs `publint` and `arethetypeswrong`
-  (`esm-only` profile). Both run in CI and in `prepublishOnly`.
+  (`esm-only` profile). Both run in CI.
 - `npm run check:install` packs the tarball, installs it into an empty project,
   and loads every public entry: core entries without React, UI entries with it,
   the designer entry on a server, and a subsetted PDF that proves the shipped
   `hb-subset.wasm` is reachable after installation.
-- `.github/workflows/release.yml` publishes on `v*` tags with npm provenance
-  after verifying that the tag matches `package.json`.
-- README documents the installed-package workflow, browser support, and the
+- `npm run verify` chains typecheck, tests, build, and the distribution checks;
+  CI runs the same commands.
+- `prepare` builds `dist/` on install, so `npm install github:...` and
+  `npm pack` work from a bare checkout.
+- README documents the Git-based install routes, browser support, and the
   distribution checks.
 
 ### Fixed
@@ -37,9 +39,9 @@ for the pre-1.0 version policy.
 
 ### Changed
 
-- README now starts with the published-package workflow (`npm install
-  layoutpdf`, fonts, browser designer, Node PDF) instead of the
-  repository development commands.
+- README now starts with the install workflow (Git dependency or vendored
+  tarball, fonts, browser designer, Node PDF) instead of the repository
+  development commands.
 
 ## [0.1.0] - 2026-11-09
 

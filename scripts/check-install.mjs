@@ -31,7 +31,9 @@ const npm = (args, options = {}) => execFileSync('npm', args, {
   ...options,
 });
 
-const [pack] = JSON.parse(execFileSync('npm', ['pack', '--json'], { encoding: 'utf8' }));
+// `--ignore-scripts` keeps `prepare` from rebuilding (and printing build output
+// into the JSON channel); `npm run build` has already produced `dist/`.
+const [pack] = JSON.parse(execFileSync('npm', ['pack', '--json', '--ignore-scripts'], { encoding: 'utf8' }));
 const tarball = resolve(root, pack.filename);
 const project = mkdtempSync(join(tmpdir(), 'layoutpdf-install-'));
 

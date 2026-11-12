@@ -14,9 +14,33 @@ Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
 
 ## Install
 
+The package is distributed from this repository, not from npm. Install it
+straight from Git — the `prepare` script builds it during install:
+
 ```sh
-npm install layoutpdf
+npm install github:Goooooooooooooo/layoutpdf#v0.1.0
 ```
+
+Pin a tag or commit so installs stay reproducible. `#main` also works, but it
+follows the tip of the branch.
+
+To build and vendor the artifact yourself:
+
+```sh
+git clone https://github.com/Goooooooooooooo/layoutpdf.git
+cd layoutpdf && npm ci && npm run build && npm pack
+# then, in your app:
+npm install /absolute/path/to/layoutpdf-0.1.0.tgz
+```
+
+A `file:` dependency (`npm install ../layoutpdf`) also works, but npm does not
+build those: run `npm run build` in the checkout first, and again after each
+pull.
+
+All examples below import from `layoutpdf`, the package name, whichever route
+you picked.
+
+Runtime requirements:
 
 - **ESM only.** There is no CommonJS build; use `import`, not `require`.
 - **Node `>=22.13.0`** for the Node/PDF entries. The browser build has no Node
@@ -35,7 +59,7 @@ ships no global script build, so a bundler is required. With Vite:
 
 ```sh
 npm create vite@latest my-app -- --template vanilla-ts
-cd my-app && npm install layoutpdf
+cd my-app && npm install github:Goooooooooooooo/layoutpdf#v0.1.0
 mkdir -p public/fonts
 cp node_modules/layoutpdf/dist/fonts/hb-subset.wasm public/fonts/
 curl -LO --output-dir public/fonts \
@@ -577,8 +601,8 @@ npm run dev:node-example
 npm run dev:worker-example
 ```
 
-`npm publish` runs `prepublishOnly`, which repeats the typecheck, tests, build,
-and all three distribution checks, so a broken tarball cannot be published.
+`npm run verify` repeats the typecheck, tests, build, and all three
+distribution checks, so run it before tagging a release.
 
 The package targets browsers, embedded WebViews, and Node. Node/headless PDF is
 available through `layoutpdf/pdf/node`.
