@@ -6,11 +6,15 @@ Design document layouts on a canvas and export them as PDF — in the browser, a
 embedded WebView, or Node.
 
 **[Live demo](https://goooooooooooooo.github.io/layoutpdf/)** — the designer
-running on GitHub Pages; nothing to install.
+running on GitHub Pages; nothing to install. The demo has two tabs: **设计模板**
+to edit the layout, and **填写数据** to fill the invoice, add or remove table
+rows, and export the result.
 
 ![The LayoutPDF designer editing a Japanese invoice template](./docs/images/designer.png)
 
 ![The same template rendered with real input in preview mode](./docs/images/invoice-preview.png)
+
+![Filling the invoice in form mode, with editable cells and row controls](./docs/images/invoice-form.png)
 
 It provides a core rendering pipeline, a visual designer, built-in plugins, and extension points for custom plugins, renderers, fonts, and storage.
 
@@ -30,7 +34,7 @@ The package is distributed from this repository, not from npm. Install it
 straight from Git — the `prepare` script builds it during install:
 
 ```sh
-npm install github:Goooooooooooooo/layoutpdf#v0.1.1
+npm install github:Goooooooooooooo/layoutpdf#v0.1.2
 ```
 
 Pin a tag or commit so installs stay reproducible. `#main` also works, but it
@@ -42,7 +46,7 @@ To build and vendor the artifact yourself:
 git clone https://github.com/Goooooooooooooo/layoutpdf.git
 cd layoutpdf && npm ci && npm run build && npm pack
 # then, in your app:
-npm install /absolute/path/to/layoutpdf-0.1.0.tgz
+npm install /absolute/path/to/layoutpdf-<version>.tgz
 ```
 
 A `file:` dependency (`npm install ../layoutpdf`) also works, but npm does not
@@ -71,7 +75,7 @@ ships no global script build, so a bundler is required. With Vite:
 
 ```sh
 npm create vite@latest my-app -- --template vanilla-ts
-cd my-app && npm install github:Goooooooooooooo/layoutpdf#v0.1.1
+cd my-app && npm install github:Goooooooooooooo/layoutpdf#v0.1.2
 mkdir -p public/fonts
 cp node_modules/layoutpdf/dist/fonts/hb-subset.wasm public/fonts/
 curl -LO --output-dir public/fonts \
@@ -237,6 +241,36 @@ export function QuotePreview() {
   );
 }
 ```
+
+## Fill in the data
+
+`RenderDocumentView` with `mode="form"` turns the laid-out document into a form:
+bound text becomes an input, multiline text becomes a textarea, and every table
+row gets a delete button plus an add-row button. The host owns the input object
+and re-resolves the document after each change.
+
+```tsx
+import { useState } from 'react';
+import { RenderDocumentView } from 'layoutpdf/preview-react';
+
+function InvoiceForm({ engine, template, initialInput }) {
+  const [input, setInput] = useState(initialInput);
+
+  return (
+    <RenderDocumentView
+      document={engine.createDocument(template, input).preview()}
+      mode="form"
+      pluginRenderers={engine.domRenderers}
+      onInputChange={(key, value) =>
+        setInput(previous => ({ ...previous, [key]: value }))}
+    />
+  );
+}
+```
+
+`onInputChange` receives the whole table value for row edits, so the host stores
+it exactly like any other bound key. Table cells marked `formula` stay read-only
+and are recomputed from the new rows.
 
 ## Framework-independent preview
 

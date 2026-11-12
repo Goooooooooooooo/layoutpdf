@@ -1,6 +1,6 @@
 {
   "name": "layoutpdf",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Design document layouts on a canvas and export them as PDF, in the browser or on the server",
   "type": "module",
   "license": "MIT",

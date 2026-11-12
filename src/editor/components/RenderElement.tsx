@@ -64,6 +64,15 @@ function textWeightStyle(
 function renderText(node: TextNode, props: RenderElementProps): ReactNode {
   const { zoom, mode, onInputChange } = props;
   const fontSize = ptToCssPx(node.style.fontSize, zoom);
+  // A text-like input covers the element box in form mode, so the static lines
+  // underneath would show through the translucent field (double text) and the
+  // formatted value would compete with the raw editable one. Keep the element
+  // chrome and drop the lines. Checkbox/radio overlays are transparent, so they
+  // still need the rendered content as their visible state.
+  const overlaysValue = mode === 'form'
+    && node.input
+    && node.input.kind !== 'checkbox'
+    && node.input.kind !== 'radio';
   const content = (
     <div
       data-node-kind="text"
@@ -75,7 +84,7 @@ function renderText(node: TextNode, props: RenderElementProps): ReactNode {
         ...borderStyle(node.style.border, zoom),
       }}
     >
-      {node.layout.lines.map((line, index) => (
+      {overlaysValue ? null : node.layout.lines.map((line, index) => (
         <span
           key={`${node.id}:line:${index}`}
           style={{

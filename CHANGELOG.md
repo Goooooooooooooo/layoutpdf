@@ -5,6 +5,21 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/). See [`docs/release.md`](./docs/release.md)
 for the pre-1.0 version policy.
 
+## [0.1.2] - 2026-11-12
+
+### Added
+
+- The designer demo has a **填写数据** tab that renders the document with
+  `RenderDocumentView mode="form"`: editable text, table cells, and add/delete
+  row controls. The PDF button exports whatever was filled in.
+- A "Fill in the data" section in the README and a screenshot of the form view.
+
+### Fixed
+
+- Form mode no longer paints the static text under the input that covers it, so
+  multiline and formatted values stop showing doubled. The element background
+  and border are still rendered.
+
 ## [0.1.1] - 2026-11-12
 
 ### Added
