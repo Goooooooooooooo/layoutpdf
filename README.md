@@ -585,11 +585,12 @@ elsewhere.
 ## Development
 
 ```sh
+npm ci                # installs dependencies and builds dist
+npm run fonts:fetch   # required before the tests; ~32 MB, not committed
 npm run typecheck
 npm test
 npm run test:update-golden
 npm run docs:schema
-npm run fonts:fetch
 npm run build
 npm run smoke          # installs the tarball and renders a PDF
 npm run check:tarball  # asserts what npm pack ships

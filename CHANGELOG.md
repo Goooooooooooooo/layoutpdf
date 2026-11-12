@@ -5,47 +5,9 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/). See [`docs/release.md`](./docs/release.md)
 for the pre-1.0 version policy.
 
-## [Unreleased]
+## [0.1.0] - 2026-11-12
 
-### Added
-
-- `npm run check:tarball` asserts the exact `npm pack` file list: every
-  `exports` target exists, `sideEffects` entries exist, no font binaries or
-  `src`/tests/examples leak, and packed/unpacked sizes stay within budget.
-- `npm run check:package` runs `publint` and `arethetypeswrong`
-  (`esm-only` profile). Both run in CI.
-- `npm run check:install` packs the tarball, installs it into an empty project,
-  and loads every public entry: core entries without React, UI entries with it,
-  the designer entry on a server, and a subsetted PDF that proves the shipped
-  `hb-subset.wasm` is reachable after installation.
-- `npm run verify` chains typecheck, tests, build, and the distribution checks;
-  CI runs the same commands.
-- `prepare` builds `dist/` on install, so `npm install github:...` and
-  `npm pack` work from a bare checkout.
-- README documents the Git-based install routes, browser support, and the
-  distribution checks.
-
-### Fixed
-
-- Pin `pdfjs-dist` to the exact version whose worker is inlined into the
-  designer chunk. A caret range let a consumer resolve a newer build than the
-  embedded worker, which pdfjs rejects with an API/Worker version mismatch and
-  breaks PDF page-background preview.
-- `layoutpdf/designer` no longer throws `HTMLElement is not defined`
-  when a server evaluates the module. The custom element falls back to a plain
-  base class and `registerLayoutPDFDesigner()` is a no-op without a DOM, so SSR
-  frameworks can import the entry safely. `npm run smoke` now checks this in a
-  child process without DOM globals.
-
-### Changed
-
-- README now starts with the install workflow (Git dependency or vendored
-  tarball, fonts, browser designer, Node PDF) instead of the repository
-  development commands.
-
-## [0.1.0] - 2026-11-09
-
-First public integration release.
+First public release.
 
 ### Added
 
@@ -65,20 +27,49 @@ First public integration release.
 - Node font subsetting through HarfBuzz wasm.
 - Designer keyboard shortcuts for delete, undo/redo, copy/paste, duplicate,
   select-all, group, and ungroup, matching the hints in the canvas menu.
+- `npm run check:tarball` asserts the exact `npm pack` file list: every
+  `exports` target exists, `sideEffects` entries exist, no font binaries or
+  `src`/tests/examples leak, and packed/unpacked sizes stay within budget.
+- `npm run check:package` runs `publint` and `arethetypeswrong`
+  (`esm-only` profile). Both run in CI.
+- `npm run check:install` packs the tarball, installs it into an empty project,
+  and loads every public entry: core entries without React, UI entries with it,
+  the designer entry on a server, and a subsetted PDF that proves the shipped
+  `hb-subset.wasm` is reachable after installation.
+- `npm run verify` chains typecheck, tests, build, and the distribution checks;
+  CI runs the same commands.
+- `prepare` builds `dist/` on install, so `npm install github:...` and
+  `npm pack` work from a bare checkout.
+- `npm test` fails fast with an actionable message when the development fonts
+  are missing, instead of reporting twenty ENOENT failures.
+- README documents the Git-based install routes, browser support, and the
+  distribution checks.
 
 ### Changed
 
 - Renamed the package and public identifiers before the first publish:
   package `layoutpdf`, custom element `<layoutpdf-designer>`, template
   format `layoutpdf-template`, class prefix `LayoutPDF*`, and CSS variables `--layoutpdf-*`.
-- Font binaries are no longer shipped in the npm tarball. Use
+- Font binaries are no longer shipped in the package. Use
   `npm run fonts:fetch` for development, or provide a font path/base URL in
   production.
 - The library build no longer copies the entire `public/` directory; only the
   subsetter wasm and license notices are emitted under `dist/fonts/`.
+- README now starts with the install workflow (Git dependency or vendored
+  tarball, fonts, browser designer, Node PDF) instead of the repository
+  development commands.
 
 ### Fixed
 
+- Pin `pdfjs-dist` to the exact version whose worker is inlined into the
+  designer chunk. A caret range let a consumer resolve a newer build than the
+  embedded worker, which pdfjs rejects with an API/Worker version mismatch and
+  breaks PDF page-background preview.
+- `layoutpdf/designer` no longer throws `HTMLElement is not defined`
+  when a server evaluates the module. The custom element falls back to a plain
+  base class and `registerLayoutPDFDesigner()` is a no-op without a DOM, so SSR
+  frameworks can import the entry safely. `npm run smoke` now checks this in a
+  child process without DOM globals.
 - New elements are no longer stacked on top of each other at the page origin.
   `findAvailablePosition` spread the caller's full element box into the
   candidate, which overwrote the search coordinates and always fell back to the
