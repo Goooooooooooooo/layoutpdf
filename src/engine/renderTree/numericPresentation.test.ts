@@ -45,6 +45,14 @@ describe('formatNumericPresentation', () => {
     );
   });
 
+  it('keeps zero and missing values blank when no display format is set', () => {
+    assert.deepEqual(formatNumericPresentation(0, undefined, 0, format), { text: '' });
+    assert.deepEqual(formatNumericPresentation(0.004, undefined, 2, format), { text: '' });
+    assert.deepEqual(formatNumericPresentation(null, undefined, 0, format), { text: '' });
+    assert.deepEqual(formatNumericPresentation(undefined, undefined, 0, format), { text: '' });
+    assert.deepEqual(formatNumericPresentation('', undefined, 0, format), { text: '' });
+  });
+
   it('does not retain a prefix for blank or dash branches', () => {
     assert.deepEqual(formatNumericPresentation(null, edge, 0, format), { text: '' });
     assert.deepEqual(
