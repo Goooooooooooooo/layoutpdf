@@ -5,6 +5,46 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/). See [`docs/release.md`](./docs/release.md)
 for the pre-1.0 version policy.
 
+## [Unreleased]
+
+### Added
+
+- Table columns and footers expose decimal places in the property panel, and a
+  shared numeric format editor can pick the negative style: `¥-1,000`,
+  `-¥1,000`, `(¥1,000)`, or `▲¥1,000`. Currency and calculation elements expose
+  the same negative-style option.
+- Grid cells and columns accept an optional `numericFormat`, so formula results
+  can be formatted per cell or per column.
+
+### Fixed
+
+- `ROUND`, `ROUNDUP`, `ROUNDDOWN`, `FLOOR`, and `CEIL` normalise binary
+  floating-point residue before rounding, and never return `-0`. Formula
+  equality and `IF` conditions use the same tolerance, so
+  `IF(0.1 + 0.2 = 0.3, …)` is true.
+- Table footers and published outputs default to the source column's decimal
+  places. Exported values are rounded like the printed value, so a summary
+  block and its source footer show the same total.
+- Japanese date formatting selects the era from the date's actual boundary
+  (Meiji/Taisho/Showa/Heisei/Reiwa), falls back to Gregorian before Meiji, and
+  never prints an era year at or below zero. Showa, Taisho, and Meiji are now
+  selectable.
+- Impossible calendar dates such as `2024-02-31` are rejected instead of being
+  silently rolled into March.
+- Grid aggregates skip blank cells, arithmetic coerces them to zero, and a
+  formula referencing non-numeric text reports `#ERR` instead of silently using
+  zero.
+- Currency formatting keeps the suffix in the left-edge symbol layout, and
+  calculation elements in number format apply their configured prefix and
+  suffix.
+- Number display rounds before deciding whether a value is zero, so small
+  negatives no longer print as `-0`.
+
+### Removed
+
+- `FormatDateOptions.timeZone`. Date values are calendar dates, so a time zone
+  never applied. `FormatLocaleSettings.timeZone` remains for app timestamps.
+
 ## [0.1.2] - 2026-11-12
 
 ### Added

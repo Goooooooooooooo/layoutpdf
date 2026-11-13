@@ -319,7 +319,9 @@ export function evaluateGridFormula(
         if (!key || context?.errorCellKeys?.has(key) || (context?.validCellKeys && !context.validCellKeys.has(key))) {
           return undefined;
         }
-        return cellValues[key] ?? 0;
+        // A missing value inside the grid is a blank cell, not zero: aggregates
+        // skip blanks while arithmetic coerces them to zero.
+        return cellValues[key] ?? null;
       },
     });
   } catch {
@@ -339,16 +341,21 @@ export function evaluateGridFormulaCells(
 ): GridFormulaSetResult {
   const values: Record<string, number> = {};
   const formulas = new Map<string, string>();
+  const nonNumericKeys = new Set<string>();
   for (const [key, content] of Object.entries(cellContents)) {
     if (content.startsWith('=')) formulas.set(key, content);
     else {
-      const value = Number(content.trim());
-      if (content.trim() !== '' && Number.isFinite(value)) values[key] = value;
+      const trimmed = content.trim();
+      if (trimmed === '') continue;
+      const value = Number(trimmed);
+      if (Number.isFinite(value)) values[key] = value;
+      else nonNumericKeys.add(key);
     }
   }
 
   const references = new Map<string, string[]>();
   const complexityInvalidKeys = new Set<string>();
+  const nonNumericReferenceKeys = new Set<string>();
   const referenceBudget = TEMPLATE_COMPLEXITY_LIMITS.maxGridCellsPerElement * 4;
   let referenceCount = 0;
   for (const [key, formula] of formulas) {
@@ -361,6 +368,9 @@ export function evaluateGridFormulaCells(
     referenceCount += visits;
     const cellReferences = getFormulaReferences(formula, context);
     references.set(key, cellReferences);
+    if (cellReferences.some(reference => nonNumericKeys.has(reference))) {
+      nonNumericReferenceKeys.add(key);
+    }
   }
   const indegree = new Map<string, number>();
   const dependents = new Map<string, string[]>();
@@ -382,7 +392,7 @@ export function evaluateGridFormulaCells(
     const key = queue[queueIndex];
     const formula = formulas.get(key);
     if (!formula) continue;
-    const result = complexityInvalidKeys.has(key)
+    const result = complexityInvalidKeys.has(key) || nonNumericReferenceKeys.has(key)
       ? undefined
       : evaluateGridFormula(formula, values, { ...context, errorCellKeys: invalidKeys });
     if (result === undefined || !Number.isFinite(result)) invalidKeys.add(key);

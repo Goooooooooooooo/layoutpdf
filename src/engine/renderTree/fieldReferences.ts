@@ -4,6 +4,7 @@ import type { RenderIssue } from '@/engine/utils/errors.js';
 import { formatNumberValue } from '@/i18n/formatters.js';
 import { computeProducerNodes } from '@/engine/renderTree/outputReferences.js';
 import { createFormulaOutputReference, evaluateFormula } from '@/utils/calc.js';
+import { roundDecimal } from '@/utils/rounding.js';
 
 function numericFieldValue(value: unknown): number | string | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -22,7 +23,8 @@ export function resolveFormulaFields(
     for (const node of page.nodes) {
       if (node.kind !== 'table') continue;
       for (const footer of node.computedFooters) {
-        derivedFields.set(createFormulaOutputReference(node.sourceElementId, footer.id), footer.value);
+        const published = roundDecimal(footer.value, footer.decimalPlaces ?? 0);
+        derivedFields.set(createFormulaOutputReference(node.sourceElementId, footer.id), published);
         const key = footer.outputFieldKey?.trim();
         if (!key) continue;
         if (Object.prototype.hasOwnProperty.call(input, key)) {
@@ -47,7 +49,7 @@ export function resolveFormulaFields(
           });
           continue;
         }
-        derivedFields.set(key, footer.value);
+        derivedFields.set(key, published);
       }
     }
   }
@@ -81,6 +83,7 @@ export function resolveFormulaFields(
               prefix: node.numericFormula.prefix,
               suffix: node.numericFormula.suffix,
               decimalPlaces: node.numericFormula.decimalPlaces,
+              negativeStyle: node.numericFormula.negativeStyle,
               fallback: 'raw',
             }),
           };
@@ -120,6 +123,7 @@ export function resolveFormulaFields(
           prefix: reference.prefix,
           suffix: reference.suffix,
           decimalPlaces: reference.decimalPlaces,
+          negativeStyle: reference.negativeStyle,
           fallback: 'raw',
         }),
       };

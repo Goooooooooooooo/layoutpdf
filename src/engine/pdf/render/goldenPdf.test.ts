@@ -24,6 +24,7 @@ interface GoldenSummary {
 }
 
 const fixtureUrl = new URL('./__golden__/invoice.json', import.meta.url);
+const tableFixtureUrl = new URL('./__golden__/table-footer-decimals.json', import.meta.url);
 
 function round(value: number): number {
   return Math.round(value * 100) / 100;
@@ -101,6 +102,46 @@ async function buildGoldenPdf(): Promise<Uint8Array> {
     .generatePdf({ subsetter: true });
 }
 
+async function buildTableFooterGoldenPdf(): Promise<Uint8Array> {
+  const engine = await createNodeEngine();
+  const template = engine
+    .createTemplate({ name: 'Golden table footer decimals' })
+    .addElement('table', {
+      id: 'table',
+      x: 20,
+      y: 20,
+      box: { width: 150, height: 40 },
+      props: {
+        columns: [
+          { id: 'col_item', label: '品名', key: 'item', width: 3, valueType: 'text', align: 'left' },
+          {
+            id: 'col_amount',
+            label: '金額',
+            key: 'amount',
+            width: 1.5,
+            valueType: 'number',
+            align: 'right',
+            decimalPlaces: 2,
+          },
+        ],
+        footers: [{
+          id: 'total',
+          label: '合計',
+          formula: { kind: 'expression', expression: 'SUM(column.amount)' },
+        }],
+      },
+      value: [
+        { id: 'row_1', item: 'A', amount: 600.005 },
+        { id: 'row_2', item: 'B', amount: 634.56 },
+      ],
+    })
+    .build();
+
+  return engine
+    .createDocument(template, {})
+    .generatePdf({ subsetter: true });
+}
+
 describe('golden PDF', () => {
   it('matches the checked-in layout snapshot', async () => {
     const bytes = await buildGoldenPdf();
@@ -116,5 +157,17 @@ describe('golden PDF', () => {
     }
     const expected = JSON.parse(await readFile(fixtureUrl, 'utf8')) as GoldenSummary;
     assert.deepEqual(summary, expected);
+  });
+
+  it('prints table footers with the resolved decimal places', async () => {
+    const bytes = await buildTableFooterGoldenPdf();
+    const summary = await summarize(bytes);
+    if (process.env.UPDATE_GOLDEN === '1') {
+      await writeFile(tableFixtureUrl, `${JSON.stringify(summary, null, 2)}\n`);
+    }
+    const expected = JSON.parse(await readFile(tableFixtureUrl, 'utf8')) as GoldenSummary;
+    assert.deepEqual(summary, expected);
+    const texts = summary.pages.flatMap(page => page.text.map(item => item.text));
+    assert.ok(texts.includes('1,234.57'), `expected rounded footer value, got ${texts.join(' | ')}`);
   });
 });

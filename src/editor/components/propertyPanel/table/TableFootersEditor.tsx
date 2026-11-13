@@ -259,6 +259,8 @@ export default function TableFootersEditor({
               disabled={disabled}
               ariaSuffix={`${t('property.table.footerTitle')} ${index + 1}`}
               defaultPrefix="¥"
+              decimalPlaces={footer.decimalPlaces}
+              onDecimalPlacesChange={decimalPlaces => updateFooter(index, { ...footer, decimalPlaces })}
               onChange={numericFormat => updateFooter(index, { ...footer, numericFormat })}
             />
           </Disclosure>

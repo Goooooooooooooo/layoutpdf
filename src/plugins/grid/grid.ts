@@ -1,20 +1,25 @@
 import { z } from 'zod';
 import type { LayoutPDFPlugin } from '@/engine/core/plugin.js';
 import type {
+  ComputedGridCell,
   GridCell,
   GridCellRole,
   GridColumn,
   GridRow,
 } from '@/engine/renderTree/model.js';
+import { NumericDisplayFormatSchema } from '@/engine/core/numericFormatSchema.js';
+import { formatNumericPresentation } from '@/engine/renderTree/numericPresentation.js';
 import { evaluateGridFormulaCells } from '@/plugins/grid/formula.js';
 import { BORDER_STYLE_OPTIONS } from '@/plugins/textShared.js';
 import { TEMPLATE_COMPLEXITY_LIMITS } from '@/engine/utils/limits.js';
+import { normalizeFloat } from '@/utils/rounding.js';
 
 const CellRoleSchema: z.ZodType<GridCellRole> = z.enum(['header', 'body', 'footer']);
 
 const GridCellSchema = z.object({
   content: z.string(),
   role: CellRoleSchema,
+  numericFormat: NumericDisplayFormatSchema.optional(),
   columnSpan: z.number().int().min(1).optional(),
   rowSpan: z.number().int().min(1).optional(),
   bold: z.boolean().optional(),
@@ -35,6 +40,7 @@ const GridColumnSchema: z.ZodType<GridColumn> = z.object({
   id: z.string().trim().min(1),
   key: z.string().trim().min(1),
   width: z.number().positive(),
+  numericFormat: NumericDisplayFormatSchema.optional(),
 });
 
 const GridRowSchema: z.ZodType<GridRow> = z.object({
@@ -232,7 +238,7 @@ export const gridPlugin: LayoutPDFPlugin<GridProps, string> = {
     const cellEntries = Object.entries(element.props.cells);
     const columnKeys = element.props.columns.map(column => column.key);
 
-    const computedCells: Record<string, GridCell> = Object.fromEntries(cellEntries.map(([key, cell]) => [
+    const computedCells: Record<string, ComputedGridCell> = Object.fromEntries(cellEntries.map(([key, cell]) => [
       key,
       { ...cell, borders: cell.borders ? { ...cell.borders } : undefined },
     ]));
@@ -248,9 +254,28 @@ export const gridPlugin: LayoutPDFPlugin<GridProps, string> = {
       }
     );
     for (const [key, value] of Object.entries(formulaResult.values)) {
-      if (element.props.cells[key]?.content.startsWith('=')) {
-        computedCells[key] = { ...computedCells[key], content: String(value) };
+      const cell = element.props.cells[key];
+      if (!cell?.content.startsWith('=')) continue;
+      const columnKey = key.slice(key.indexOf(':') + 1);
+      const column = element.props.columns.find(candidate => candidate.key === columnKey);
+      const numericFormat = cell.numericFormat ?? column?.numericFormat;
+      if (!numericFormat) {
+        // Keep the historical unformatted result, but strip floating-point
+        // residue and never expose "-0" when a formula rounds to zero.
+        computedCells[key] = { ...computedCells[key], content: String(normalizeFloat(value)) };
+        continue;
       }
+      const presentation = formatNumericPresentation(
+        value,
+        numericFormat,
+        numericFormat.decimalPlaces ?? 0,
+        context.format,
+      );
+      computedCells[key] = {
+        ...computedCells[key],
+        content: presentation.text,
+        prefixText: presentation.prefixText,
+      };
     }
     for (const key of formulaResult.invalidKeys) {
       computedCells[key] = { ...computedCells[key], content: '#ERR' };

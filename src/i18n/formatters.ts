@@ -4,8 +4,15 @@ import {
   type DateCalendar,
   type DocumentLocale,
 } from '@/i18n/locales.js';
+import { roundDecimal } from '@/utils/rounding.js';
 
 export type NumberDisplayMode = 'number' | 'currency' | 'calc';
+
+export type NegativeCurrencyStyle =
+  | 'minus-after-symbol'
+  | 'minus-before-symbol'
+  | 'parentheses'
+  | 'triangle';
 
 export interface FormatNumberOptions {
   mode?: NumberDisplayMode | 'plain';
@@ -14,9 +21,10 @@ export interface FormatNumberOptions {
   suffix?: string;
   decimalPlaces?: number;
   fallback?: 'zero' | 'raw';
+  negativeStyle?: NegativeCurrencyStyle;
 }
 
-export type DateEra = 'reiwa' | 'heisei' | 'seireki';
+export type DateEra = 'meiji' | 'taisho' | 'showa' | 'heisei' | 'reiwa' | 'seireki';
 export type DateDisplayFormat = 'long' | 'short' | 'numeric';
 
 export interface FormatDateOptions {
@@ -24,15 +32,30 @@ export interface FormatDateOptions {
   calendar?: DateCalendar;
   era?: DateEra;
   format?: DateDisplayFormat;
-  timeZone?: string;
 }
 
 const DEFAULT_DECIMAL_PLACES = 0;
 
-const ERA_MAP: Record<Exclude<DateEra, 'seireki'>, { start: number; name: string; short: string }> = {
-  reiwa: { start: 2019, name: '令和', short: 'R' },
-  heisei: { start: 1989, name: '平成', short: 'H' },
-};
+interface EraInfo {
+  key: Exclude<DateEra, 'seireki'>;
+  name: string;
+  short: string;
+  start: { year: number; month: number; day: number };
+}
+
+// Ordered from oldest to newest. Each era owns the dates from its start
+// boundary up to the next era's start boundary.
+const JAPANESE_ERAS: readonly EraInfo[] = [
+  { key: 'meiji', name: '明治', short: 'M', start: { year: 1868, month: 1, day: 25 } },
+  { key: 'taisho', name: '大正', short: 'T', start: { year: 1912, month: 7, day: 30 } },
+  { key: 'showa', name: '昭和', short: 'S', start: { year: 1926, month: 12, day: 25 } },
+  { key: 'heisei', name: '平成', short: 'H', start: { year: 1989, month: 1, day: 8 } },
+  { key: 'reiwa', name: '令和', short: 'R', start: { year: 2019, month: 5, day: 1 } },
+];
+
+const ERA_MAP = Object.fromEntries(
+  JAPANESE_ERAS.map(era => [era.key, era]),
+) as Record<EraInfo['key'], EraInfo>;
 
 export function cleanNumericInput(raw: string): string {
   return raw.replace(/[^0-9.-]/g, '');
@@ -67,18 +90,25 @@ export function formatNumberValue(
     locale = DEFAULT_DOCUMENT_LOCALE,
     decimalPlaces = DEFAULT_DECIMAL_PLACES,
     fallback = 'zero',
+    negativeStyle = 'minus-after-symbol',
   } = options;
   const currencyAffixes = defaultCurrencyAffixes(locale);
-  const prefix = options.prefix ?? currencyAffixes.prefix;
-  const suffix = options.suffix ?? currencyAffixes.suffix;
+  // In number mode only an explicitly supplied affix belongs to the value;
+  // the locale currency symbol must not leak into plain numbers.
+  const prefix = options.prefix ?? (mode === 'currency' ? currencyAffixes.prefix : '');
+  const suffix = options.suffix ?? (mode === 'currency' ? currencyAffixes.suffix : '');
   const numberValue = parseLooseNumber(value);
 
   if (!Number.isFinite(numberValue)) {
-    return fallback === 'raw' ? String(value) : wrapCurrency('0', mode, prefix, suffix);
+    return fallback === 'raw' ? String(value) : wrapCurrency('0', prefix, suffix, negativeStyle);
   }
 
-  const formatted = formatLocalizedNumber(numberValue, decimalPlaces, locale);
-  return wrapCurrency(formatted, mode, prefix, suffix);
+  const formatted = formatLocalizedNumber(
+    roundDecimal(numberValue, decimalPlaces),
+    decimalPlaces,
+    locale,
+  );
+  return wrapCurrency(formatted, prefix, suffix, negativeStyle);
 }
 
 export function formatBooleanValue(
@@ -102,7 +132,11 @@ export function formatCurrencyInput(
   const resolvedSuffix = suffix ?? affixes.suffix;
   const numberValue = parseCurrencyNumber(value);
   if (!Number.isFinite(numberValue)) return value || `${resolvedPrefix}0${resolvedSuffix}`;
-  return `${resolvedPrefix}${formatLocalizedNumber(numberValue, decimalPlaces, locale)}${resolvedSuffix}`;
+  return `${resolvedPrefix}${formatLocalizedNumber(
+    roundDecimal(numberValue, decimalPlaces),
+    decimalPlaces,
+    locale,
+  )}${resolvedSuffix}`;
 }
 
 export function formatDateValue(value: string, options: FormatDateOptions = {}): string {
@@ -115,14 +149,14 @@ export function formatDateValue(value: string, options: FormatDateOptions = {}):
     calendar = 'gregory',
     era = calendar === 'japanese' ? 'reiwa' : 'seireki',
     format = 'long',
-    timeZone = 'UTC',
   } = options;
 
-  if (calendar === 'japanese' || era !== 'seireki') {
-    return formatJapaneseEraDate(parsed, era === 'seireki' ? 'reiwa' : era, format);
-  }
+  if (era === 'seireki') return formatGregorianDate(parsed, locale, format);
 
-  return formatGregorianDate(parsed, locale, format, timeZone);
+  const actual = eraForDate(parsed);
+  if (!actual) return formatGregorianDate(parsed, locale, format);
+  const chosen = eraContains(ERA_MAP[era], parsed) ? era : actual;
+  return formatJapaneseEraDate(parsed, chosen, format);
 }
 
 export function fmtJaDate(value: string, era: string, format: string): string {
@@ -138,11 +172,23 @@ export function fmtJaDate(value: string, era: string, format: string): string {
 
 function wrapCurrency(
   formatted: string,
-  mode: FormatNumberOptions['mode'],
   prefix: string,
   suffix: string,
+  negativeStyle: NegativeCurrencyStyle,
 ) {
-  return mode === 'currency' ? `${prefix}${formatted}${suffix}` : formatted;
+  if (!prefix && !suffix) return formatted;
+  const negative = formatted.startsWith('-');
+  const magnitude = negative ? formatted.slice(1) : formatted;
+  if (!negative || negativeStyle === 'minus-after-symbol') {
+    return `${prefix}${formatted}${suffix}`;
+  }
+  if (negativeStyle === 'minus-before-symbol') {
+    return `-${prefix}${magnitude}${suffix}`;
+  }
+  if (negativeStyle === 'parentheses') {
+    return `(${prefix}${magnitude}${suffix})`;
+  }
+  return `▲${prefix}${magnitude}${suffix}`;
 }
 
 function parseDateParts(value: string): { year: number; month: number; day: number } | undefined {
@@ -153,17 +199,46 @@ function parseDateParts(value: string): { year: number; month: number; day: numb
   const month = Number(parts[1]);
   const day = Number(parts[2]);
   if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return undefined;
-  if (month < 1 || month > 12 || day < 1 || day > 31) return undefined;
+  if (month < 1 || month > 12 || day < 1) return undefined;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  if (day > daysInMonth) return undefined;
   return { year, month, day };
 }
 
+type DateParts = { year: number; month: number; day: number };
+
+function dateOrdinal(date: DateParts): number {
+  return date.year * 10_000 + date.month * 100 + date.day;
+}
+
+function eraForDate(date: DateParts): Exclude<DateEra, 'seireki'> | undefined {
+  const ordinal = dateOrdinal(date);
+  for (let index = JAPANESE_ERAS.length - 1; index >= 0; index--) {
+    if (ordinal >= dateOrdinal(JAPANESE_ERAS[index].start)) return JAPANESE_ERAS[index].key;
+  }
+  return undefined;
+}
+
+function eraContains(
+  era: EraInfo | undefined,
+  date: DateParts,
+): era is EraInfo {
+  if (!era) return false;
+  const index = JAPANESE_ERAS.indexOf(era);
+  const next = JAPANESE_ERAS[index + 1];
+  const ordinal = dateOrdinal(date);
+  return ordinal >= dateOrdinal(era.start)
+    && (next === undefined || ordinal < dateOrdinal(next.start));
+}
+
 function formatJapaneseEraDate(
-  date: { year: number; month: number; day: number },
+  date: DateParts,
   era: Exclude<DateEra, 'seireki'>,
   format: DateDisplayFormat,
 ): string {
   const eraInfo = ERA_MAP[era];
-  const eraYear = date.year - eraInfo.start + 1;
+  const eraYear = Math.max(1, date.year - eraInfo.start.year + 1);
   const eraYearText = eraYear === 1 ? '元' : String(eraYear);
   const month = String(date.month).padStart(2, '0');
   const day = String(date.day).padStart(2, '0');
@@ -174,10 +249,9 @@ function formatJapaneseEraDate(
 }
 
 function formatGregorianDate(
-  date: { year: number; month: number; day: number },
+  date: DateParts,
   locale: DocumentLocale,
   format: DateDisplayFormat,
-  _timeZone: string,
 ): string {
   const month = String(date.month).padStart(2, '0');
   const day = String(date.day).padStart(2, '0');
@@ -201,7 +275,12 @@ function formatGregorianDate(
 }
 
 function isDateEra(value: string): value is DateEra {
-  return value === 'reiwa' || value === 'heisei' || value === 'seireki';
+  return value === 'meiji'
+    || value === 'taisho'
+    || value === 'showa'
+    || value === 'heisei'
+    || value === 'reiwa'
+    || value === 'seireki';
 }
 
 function isDateDisplayFormat(value: string): value is DateDisplayFormat {

@@ -1,6 +1,11 @@
 import type { JsonValue } from '@/engine/core/document.js';
+import { isFormulaZero, numbersEqual, roundDecimal } from '@/utils/rounding.js';
 
-export type FormulaValue = number | readonly number[];
+/**
+ * `null` represents a blank cell. Aggregates skip it the way Excel does, while
+ * arithmetic treats it as zero.
+ */
+export type FormulaValue = number | readonly (number | null)[] | null;
 
 export type FormulaNode =
   | { kind: 'number'; value: number }
@@ -436,6 +441,7 @@ export function renameFormulaReferences(
 }
 
 function scalar(value: FormulaValue | string, context: string): number {
+  if (value === null) return 0;
   if (typeof value === 'object') throw new Error(`${context} requires a single numeric value.`);
   const result = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(result)) {
@@ -446,7 +452,18 @@ function scalar(value: FormulaValue | string, context: string): number {
 }
 
 function flatten(values: readonly FormulaValue[]): number[] {
-  return values.flatMap(value => Array.isArray(value) ? [...value] : [value]);
+  const numbers: number[] = [];
+  for (const value of values) {
+    if (value === null) continue;
+    if (typeof value === 'number') {
+      numbers.push(value);
+      continue;
+    }
+    for (const item of value) {
+      if (item !== null) numbers.push(item);
+    }
+  }
+  return numbers;
 }
 
 function decimalPlaces(
@@ -471,15 +488,16 @@ function evaluateRoundingCall(
   }
   const value = scalar(values[0], name);
   const places = decimalPlaces(values, name);
-  const factor = 10 ** places;
-  const scaled = value * factor;
-  let rounded: number;
-  if (name === 'ROUND') rounded = Math.round(scaled);
-  else if (name === 'ROUNDUP') rounded = Math.sign(scaled) * Math.ceil(Math.abs(scaled));
-  else if (name === 'ROUNDDOWN') rounded = Math.sign(scaled) * Math.floor(Math.abs(scaled));
-  else if (name === 'FLOOR') rounded = Math.floor(scaled);
-  else rounded = Math.ceil(scaled);
-  return rounded / factor;
+  const mode = name === 'ROUND'
+    ? 'round'
+    : name === 'ROUNDUP'
+      ? 'up'
+      : name === 'ROUNDDOWN'
+        ? 'down'
+        : name === 'FLOOR'
+          ? 'floor'
+          : 'ceil';
+  return roundDecimal(value, places, mode);
 }
 
 function evaluateBuiltInCall(
@@ -489,7 +507,7 @@ function evaluateBuiltInCall(
 ): FormulaValue {
   if (node.name === 'IF') {
     if (node.args.length !== 3) throw new Error('IF requires condition, true value, and false value.');
-    return scalar(evaluate(node.args[0]), 'IF condition') !== 0
+    return !isFormulaZero(scalar(evaluate(node.args[0]), 'IF condition'))
       ? evaluate(node.args[1])
       : evaluate(node.args[2]);
   }
@@ -538,8 +556,10 @@ export function evaluateFormulaNode(node: FormulaNode, scope: FormulaScope): For
   if (node.kind === 'reference') {
     const value = scope.resolve(node.name);
     if (value === undefined) throw new Error(`Unknown formula field: ${node.name}.`);
-    if (Array.isArray(value)) return value.map(item => scalar(item, node.name));
-    return scalar(value, node.name);
+    if (Array.isArray(value)) {
+      return value.map(item => item === null ? null : scalar(item, node.name));
+    }
+    return value === null ? null : scalar(value, node.name);
   }
   if (node.kind === 'unary') {
     const value = scalar(evaluate(node.operand), `Operator ${node.operator}`);
@@ -555,8 +575,8 @@ export function evaluateFormulaNode(node: FormulaNode, scope: FormulaScope): For
   if (node.operator === '/') return left / right;
   if (node.operator === '%') return left % right;
   if (node.operator === '^') return left ** right;
-  if (node.operator === '=') return left === right ? 1 : 0;
-  if (node.operator === '!=') return left !== right ? 1 : 0;
+  if (node.operator === '=') return numbersEqual(left, right) ? 1 : 0;
+  if (node.operator === '!=') return numbersEqual(left, right) ? 0 : 1;
   if (node.operator === '<') return left < right ? 1 : 0;
   if (node.operator === '<=') return left <= right ? 1 : 0;
   if (node.operator === '>') return left > right ? 1 : 0;
@@ -572,8 +592,7 @@ export function evaluateFormula(
   const result = scalar(value, 'Formula result');
   if (!Number.isFinite(result)) throw new Error('Formula result is not finite.');
   if (decimalPlaces === undefined) return result;
-  const factor = 10 ** decimalPlaces;
-  return Math.round(result * factor) / factor;
+  return roundDecimal(result, decimalPlaces);
 }
 
 export function evaluateExpression(

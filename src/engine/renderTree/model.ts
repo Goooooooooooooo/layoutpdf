@@ -83,12 +83,14 @@ export interface TextNode extends RenderNodeBase {
     prefix: string;
     suffix: string;
     decimalPlaces: number;
+    negativeStyle?: NegativeCurrencyStyle;
   };
   fieldReference?: {
     key: string;
     prefix: string;
     suffix: string;
     decimalPlaces: number;
+    negativeStyle?: NegativeCurrencyStyle;
   };
   style: {
     fontName?: string;
@@ -169,11 +171,19 @@ export interface ElementOutputRef {
 
 export type RenderOutputValue = string | number | boolean | null;
 
+export type NegativeCurrencyStyle =
+  | 'minus-after-symbol'
+  | 'minus-before-symbol'
+  | 'parentheses'
+  | 'triangle';
+
 export interface NumericDisplayFormat {
   prefix: string;
   symbolLayout: 'attached' | 'edge';
   zeroDisplay: 'zero' | 'dash' | 'blank';
   emptyDisplay: 'blank' | 'dash';
+  decimalPlaces?: number;
+  negativeStyle?: NegativeCurrencyStyle;
 }
 
 export type TableNumericFormat = NumericDisplayFormat;
@@ -184,6 +194,7 @@ export interface RenderOutput {
   label: string;
   value: RenderOutputValue;
   numericFormat?: NumericDisplayFormat;
+  decimalPlaces?: number;
 }
 
 export interface TableColumn {
@@ -208,6 +219,7 @@ export interface TableFooter {
   startColumnKey?: string;
   valueColumnKey?: string;
   outputFieldKey?: string;
+  decimalPlaces?: number;
   numericFormat?: TableNumericFormat;
 }
 
@@ -220,6 +232,7 @@ export interface ComputedTableFooter {
   startColumnKey?: string;
   valueColumnKey?: string;
   outputFieldKey?: string;
+  decimalPlaces?: number;
   numericFormat?: TableNumericFormat;
 }
 
@@ -356,6 +369,7 @@ export interface GridColumn {
   id: string;
   key: string;
   width: number;
+  numericFormat?: NumericDisplayFormat;
 }
 
 export interface GridRow {
@@ -368,6 +382,7 @@ export type GridCellRole = 'header' | 'body' | 'footer';
 export interface GridCell {
   content: string;
   role: GridCellRole;
+  numericFormat?: NumericDisplayFormat;
   columnSpan?: number;
   rowSpan?: number;
   bold?: boolean;

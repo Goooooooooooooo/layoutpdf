@@ -9,7 +9,7 @@ import {
 } from '@/plugins/textShared.js';
 
 export const DatePropsSchema = TextVisualPropsSchema.extend({
-  era: z.enum(['reiwa', 'heisei', 'seireki']),
+  era: z.enum(['meiji', 'taisho', 'showa', 'heisei', 'reiwa', 'seireki']),
   format: z.enum(['long', 'short', 'numeric']),
 });
 
@@ -63,6 +63,9 @@ export const datePlugin: LayoutPDFPlugin<DateProps, string> = {
         { label: '西历', labelKey: 'property.option.dateSeireki', value: 'seireki' },
         { label: '令和', labelKey: 'property.option.dateReiwa', value: 'reiwa' },
         { label: '平成', labelKey: 'property.option.dateHeisei', value: 'heisei' },
+        { label: '昭和', labelKey: 'property.option.dateShowa', value: 'showa' },
+        { label: '大正', labelKey: 'property.option.dateTaisho', value: 'taisho' },
+        { label: '明治', labelKey: 'property.option.dateMeiji', value: 'meiji' },
       ],
     },
     {
@@ -87,7 +90,6 @@ export const datePlugin: LayoutPDFPlugin<DateProps, string> = {
         calendar: element.props.era === 'seireki' ? 'gregory' : 'japanese',
         era: element.props.era,
         format: element.props.format,
-        timeZone: context.format.timeZone,
       }),
       context,
       input: element.binding ? {

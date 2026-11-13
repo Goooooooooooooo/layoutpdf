@@ -11,6 +11,7 @@ import { computeTableNode } from '@/engine/renderTree/tableLayout.js';
 import type { RenderIssue } from '@/engine/utils/errors.js';
 import { formatBooleanValue } from '@/i18n/formatters.js';
 import { createFormulaOutputReference } from '@/utils/calc.js';
+import { roundDecimal } from '@/utils/rounding.js';
 
 function outputKey(pageId: string, sourceElementId: string, outputId: string): string {
   return `${pageId}\u0000${sourceElementId}\u0000${outputId}`;
@@ -75,10 +76,11 @@ export function computeProducerNodes(document: RenderDocument): RenderDocument {
           });
         }
         for (const footer of computed.computedFooters) {
-          sharedFields[createFormulaOutputReference(computed.sourceElementId, footer.id)] = footer.value;
+          const published = roundDecimal(footer.value, footer.decimalPlaces ?? 0);
+          sharedFields[createFormulaOutputReference(computed.sourceElementId, footer.id)] = published;
           const key = footer.outputFieldKey?.trim();
           if (key && !Object.prototype.hasOwnProperty.call(sharedFields, key)) {
-            sharedFields[key] = footer.value;
+            sharedFields[key] = published;
           }
         }
         pending.delete(location);
@@ -188,7 +190,7 @@ function bindOutputValue(
     const presentation = formatNumericPresentation(
       output.value,
       output.numericFormat,
-      0,
+      output.decimalPlaces ?? 0,
       document.format,
     );
     return {

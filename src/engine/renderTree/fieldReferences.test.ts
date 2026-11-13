@@ -72,6 +72,25 @@ describe('resolveFieldReferences', () => {
     assert.deepEqual(output.issues, []);
   });
 
+  it('applies prefix and suffix to a calculation in number format', () => {
+    const doc = document();
+    doc.pages[0].nodes[2] = {
+      ...formulaReference('1.4'),
+      id: 'calc_number',
+      sourceElementId: 'el_calc_number',
+      numericFormula: {
+        expression: '1.4',
+        format: 'number',
+        prefix: '税込 ',
+        suffix: ' 円',
+        decimalPlaces: 1,
+      },
+    };
+    const output = resolveFieldReferences(doc, {});
+    const calc = output.pages[0].nodes[2];
+    assert.equal(calc.kind === 'text' && calc.text, '税込 1.4 円');
+  });
+
   it('reports input conflicts instead of silently overriding values', () => {
     const output = resolveFieldReferences(document(), { invoiceTotal: 1 });
     assert.ok(output.issues.some(issue => issue.code === 'DERIVED_FIELD_CONFLICT'));
