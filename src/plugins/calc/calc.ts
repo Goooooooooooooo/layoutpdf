@@ -12,6 +12,12 @@ export const CalcPropsSchema = TextVisualPropsSchema.extend({
   prefix: z.string(),
   suffix: z.string(),
   decimalPlaces: z.number().int().min(0).max(10),
+  negativeStyle: z.enum([
+    'minus-after-symbol',
+    'minus-before-symbol',
+    'parentheses',
+    'triangle',
+  ]).default('minus-after-symbol'),
 });
 
 export type CalcProps = z.infer<typeof CalcPropsSchema>;
@@ -37,6 +43,7 @@ export const calcPlugin: LayoutPDFPlugin<CalcProps, string> = {
         prefix: '¥',
         suffix: '',
         decimalPlaces: 0,
+        negativeStyle: 'minus-after-symbol',
       },
     };
   },
@@ -56,6 +63,19 @@ export const calcPlugin: LayoutPDFPlugin<CalcProps, string> = {
     { path: 'props.prefix', label: '前缀', labelKey: 'property.common.prefix', editor: 'text', group: 'content' },
     { path: 'props.suffix', label: '后缀', labelKey: 'property.common.suffix', editor: 'text', group: 'content' },
     { path: 'props.decimalPlaces', label: '小数位', labelKey: 'property.common.decimalPlaces', editor: 'number', min: 0, max: 10, group: 'content' },
+    {
+      path: 'props.negativeStyle',
+      label: '负数样式',
+      labelKey: 'property.common.negativeStyle',
+      editor: 'select',
+      group: 'content',
+      options: [
+        { label: '¥-1,000', labelKey: 'property.option.negativeMinusAfterSymbol', value: 'minus-after-symbol' },
+        { label: '-¥1,000', labelKey: 'property.option.negativeMinusBeforeSymbol', value: 'minus-before-symbol' },
+        { label: '(¥1,000)', labelKey: 'property.option.negativeParentheses', value: 'parentheses' },
+        { label: '▲¥1,000', labelKey: 'property.option.negativeTriangle', value: 'triangle' },
+      ],
+    },
     ...textStyleProperties(),
   ],
   buildRenderNodes({ element, value, context }) {
@@ -69,6 +89,7 @@ export const calcPlugin: LayoutPDFPlugin<CalcProps, string> = {
         prefix: element.props.prefix,
         suffix: element.props.suffix,
         decimalPlaces: element.props.decimalPlaces,
+        negativeStyle: element.props.negativeStyle,
       },
     })];
   },

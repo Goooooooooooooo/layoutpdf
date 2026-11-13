@@ -247,6 +247,8 @@ export default function TableColumnsEditor({
               disabled={disabled}
               ariaSuffix={String(index + 1)}
               defaultPrefix={column.valueType === 'currency' ? '¥' : ''}
+              decimalPlaces={column.decimalPlaces}
+              onDecimalPlacesChange={decimalPlaces => onChange(updateColumn(columns, index, { decimalPlaces }))}
               onChange={numericFormat => onChange(updateColumn(columns, index, { numericFormat }))}
             />
           ) : null}

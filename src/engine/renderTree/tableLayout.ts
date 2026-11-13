@@ -15,6 +15,7 @@ import {
   type FormulaScope,
   type FormulaValue,
 } from '@/utils/calc.js';
+import { roundDecimal } from '@/utils/rounding.js';
 
 function scalarFormulaValue(value: FormulaValue, context: string): number {
   if (typeof value !== 'number') throw new Error(`${context} requires a single numeric value.`);
@@ -244,6 +245,7 @@ export function computeTableFootersResult(
         ...(footer.startColumnKey === undefined ? {} : { startColumnKey: footer.startColumnKey }),
         ...(footer.valueColumnKey === undefined ? {} : { valueColumnKey: footer.valueColumnKey }),
         ...(footer.outputFieldKey === undefined ? {} : { outputFieldKey: footer.outputFieldKey }),
+        ...(footer.decimalPlaces === undefined ? {} : { decimalPlaces: footer.decimalPlaces }),
         ...(footer.numericFormat === undefined ? {} : { numericFormat: { ...footer.numericFormat } }),
       });
     } catch (error) {
@@ -282,11 +284,33 @@ function cloneFooter(footer: TableFooter): TableFooter {
   };
 }
 
+/**
+ * Resolves the decimals a footer prints with. An explicit footer value wins,
+ * then its numeric display format, then the decimals of the column the value
+ * is printed in (the last column when nothing is configured).
+ */
+export function resolveFooterDecimalPlaces(
+  footer: Pick<TableFooter, 'decimalPlaces' | 'numericFormat' | 'valueColumnKey'>,
+  columns: readonly TableColumn[],
+): number {
+  if (footer.decimalPlaces !== undefined) return footer.decimalPlaces;
+  if (footer.numericFormat?.decimalPlaces !== undefined) {
+    return footer.numericFormat.decimalPlaces;
+  }
+  const column = footer.valueColumnKey
+    ? columns.find(candidate => candidate.key === footer.valueColumnKey)
+    : columns[columns.length - 1];
+  return column?.decimalPlaces ?? column?.numericFormat?.decimalPlaces ?? 0;
+}
+
 export function computeTableNode(node: TableNode): TableNode {
   const rowResult = computeTableRowsResult(node.columns, node.rows, node.formulaFields);
   const computedRows = rowResult.rows;
   const footerResult = computeTableFootersResult(node.footers, computedRows, node.formulaFields);
-  const computedFooters = footerResult.footers;
+  const computedFooters = footerResult.footers.map(footer => ({
+    ...footer,
+    decimalPlaces: resolveFooterDecimalPlaces(footer, node.columns),
+  }));
   const formulaErrors = [...rowResult.errors, ...footerResult.errors];
   return {
     ...node,
@@ -305,7 +329,11 @@ export function computeTableNode(node: TableNode): TableNode {
       id: footer.id,
       kind: 'number' as const,
       label: footer.label,
-      value: footer.value,
+      // Publishers and summaries must expose the same rounded value the table
+      // prints, otherwise the total shown in the footer and the total copied
+      // into a summary block disagree.
+      value: roundDecimal(footer.value, footer.decimalPlaces ?? 0),
+      decimalPlaces: footer.decimalPlaces ?? 0,
       ...(footer.numericFormat ? { numericFormat: { ...footer.numericFormat } } : {}),
     })),
     style: { ...node.style, border: { ...node.style.border } },

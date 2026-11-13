@@ -17,6 +17,7 @@ import {
   normalizeTablePaginationOptions,
 } from '@/engine/renderTree/tablePaginationOptions.js';
 import { JsonValueSchema } from '@/engine/core/validation.js';
+import { NumericDisplayFormatSchema } from '@/engine/core/numericFormatSchema.js';
 import { BorderSchema, BORDER_STYLE_OPTIONS } from '@/plugins/textShared.js';
 import { getFormulaReferences, parseFormula } from '@/utils/calc.js';
 
@@ -53,12 +54,7 @@ export function collectCyclicTableColumnKeys(
 
 const TableColumnAlignSchema = z.enum(['left', 'center', 'right']);
 
-export const TableNumericFormatSchema: z.ZodType<TableNumericFormat> = z.object({
-  prefix: z.string(),
-  symbolLayout: z.enum(['attached', 'edge']),
-  zeroDisplay: z.enum(['zero', 'dash', 'blank']),
-  emptyDisplay: z.enum(['blank', 'dash']),
-});
+export const TableNumericFormatSchema: z.ZodType<TableNumericFormat> = NumericDisplayFormatSchema;
 
 export const TableColumnSchema: z.ZodType<TableColumn> = z.object({
   id: z.string().trim().min(1),
@@ -82,6 +78,7 @@ export const TableFooterSchema: z.ZodType<TableFooter> = z.object({
   startColumnKey: z.string().trim().min(1).optional(),
   valueColumnKey: z.string().trim().min(1).optional(),
   outputFieldKey: z.string().trim().min(1).optional(),
+  decimalPlaces: z.number().int().min(0).max(10).optional(),
   numericFormat: TableNumericFormatSchema.optional(),
 });
 

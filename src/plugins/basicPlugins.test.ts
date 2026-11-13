@@ -92,6 +92,23 @@ describe('Phase 5 basic plugins', () => {
     assert.equal(dateNode.input?.value, '2026-07-13');
   });
 
+  it('keeps the suffix when a currency value uses the left-edge layout', () => {
+    const edge = currencyPlugin.createDefaultElement({ id: 'edge', position: { x: 0, y: 0 } });
+    edge.props.symbolLayout = 'edge';
+    edge.props.suffix = '円';
+    const nodes = currencyPlugin.buildRenderNodes({ element: edge, value: 1234, context: context() });
+    assert.equal(nodes.length, 2);
+    assert.equal(nodes[0].kind === 'text' && nodes[0].text, '¥');
+    assert.equal(nodes[1].kind === 'text' && nodes[1].text, '1,234円');
+  });
+
+  it('applies the configured negative currency style', () => {
+    const element = currencyPlugin.createDefaultElement({ id: 'negative', position: { x: 0, y: 0 } });
+    element.props.negativeStyle = 'parentheses';
+    const nodes = currencyPlugin.buildRenderNodes({ element, value: -1000, context: context() });
+    assert.equal(nodes[0].kind === 'text' && nodes[0].text, '(¥1,000)');
+  });
+
   it('builds Currency field references with attached or left-edge symbols', () => {
     const attached = currencyPlugin.createDefaultElement({ id: 'attached', position: { x: 0, y: 0 } });
     attached.props.source = { kind: 'field', key: 'invoiceTotal' };

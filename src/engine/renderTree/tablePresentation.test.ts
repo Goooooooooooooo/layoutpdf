@@ -65,6 +65,28 @@ describe('layoutTablePresentation', () => {
     assert.equal(body.fontName, 'TestFont');
   });
 
+  it('keeps a blank row blank instead of printing zero', () => {
+    const element = tablePlugin.createDefaultElement({ id: 'el_table', position: { x: 10, y: 20 } });
+    const blank = computeTableNode(tablePlugin.buildRenderNodes({
+      element,
+      value: [{ id: 'row_blank' }],
+      context: {
+        pageId: 'page_1',
+        pageSize: { width: 210, height: 297 },
+        input: {},
+        fontManager,
+        format: jaFormat,
+        createNodeId: localId => `el_table:node:${localId}`,
+        report: () => {},
+      },
+    })[0] as TableNode);
+    const output = layoutTablePresentation(blank, fontManager, jaFormat);
+    const cells = output.layout.cells.filter(cell =>
+      cell.role === 'body' && cell.rowIndex === 0
+    );
+    assert.deepEqual(cells.map(cell => cell.text), ['', '', '', '']);
+  });
+
   it('wraps long text cells and grows every cell in the row to the measured height', () => {
     const input = node();
     input.box.width = 60;

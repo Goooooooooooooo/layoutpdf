@@ -48,7 +48,6 @@ function displayValue(
       locale: format.locale,
       calendar: format.calendar,
       format: 'long',
-      timeZone: format.timeZone,
     }) };
   }
   if (column.valueType === 'currency' || column.valueType === 'number' || column.valueType === 'formula') {
@@ -700,7 +699,7 @@ export function layoutTablePresentation(
           y: y + band.headerHeight,
           width: box.width,
           height: band.valueHeight,
-          ...formatNumericPresentation(footer.value, footer.numericFormat, 0, format),
+          ...formatNumericPresentation(footer.value, footer.numericFormat, footer.decimalPlaces ?? 0, format),
           align: 'right',
           color: node.style.bodyColor,
           bold: footer.bold,
@@ -738,7 +737,7 @@ export function layoutTablePresentation(
         y,
         width: boxes.value.width,
         height: node.style.rowHeight,
-        ...formatNumericPresentation(footer.value, footer.numericFormat, 0, format),
+        ...formatNumericPresentation(footer.value, footer.numericFormat, footer.decimalPlaces ?? 0, format),
         align: 'right',
         color: node.style.bodyColor,
         bold: footer.bold,

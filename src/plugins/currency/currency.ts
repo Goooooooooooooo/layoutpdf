@@ -12,6 +12,12 @@ export const CurrencyPropsSchema = TextVisualPropsSchema.extend({
   prefix: z.string(),
   suffix: z.string(),
   decimalPlaces: z.number().int().min(0).max(10),
+  negativeStyle: z.enum([
+    'minus-after-symbol',
+    'minus-before-symbol',
+    'parentheses',
+    'triangle',
+  ]).default('minus-after-symbol'),
   source: z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('ownValue') }),
     z.object({ kind: z.literal('field'), key: z.string().default('') }),
@@ -50,6 +56,7 @@ export const currencyPlugin: LayoutPDFPlugin<CurrencyProps, CurrencyValue> = {
         prefix: '¥',
         suffix: '',
         decimalPlaces: 0,
+        negativeStyle: 'minus-after-symbol',
         source: { kind: 'ownValue' },
         symbolLayout: 'attached',
       },
@@ -62,6 +69,19 @@ export const currencyPlugin: LayoutPDFPlugin<CurrencyProps, CurrencyValue> = {
     { path: 'props.prefix', label: '货币符号', labelKey: 'property.currency.prefix', editor: 'text', group: 'content' },
     { path: 'props.suffix', label: '后缀', labelKey: 'property.common.suffix', editor: 'text', group: 'content' },
     { path: 'props.decimalPlaces', label: '小数位', labelKey: 'property.common.decimalPlaces', editor: 'number', min: 0, max: 10, group: 'content' },
+    {
+      path: 'props.negativeStyle',
+      label: '负数样式',
+      labelKey: 'property.common.negativeStyle',
+      editor: 'select',
+      group: 'content',
+      options: [
+        { label: '¥-1,000', labelKey: 'property.option.negativeMinusAfterSymbol', value: 'minus-after-symbol' },
+        { label: '-¥1,000', labelKey: 'property.option.negativeMinusBeforeSymbol', value: 'minus-before-symbol' },
+        { label: '(¥1,000)', labelKey: 'property.option.negativeParentheses', value: 'parentheses' },
+        { label: '▲¥1,000', labelKey: 'property.option.negativeTriangle', value: 'triangle' },
+      ],
+    },
     {
       path: 'props.source.kind',
       label: '数值来源',
@@ -95,6 +115,7 @@ export const currencyPlugin: LayoutPDFPlugin<CurrencyProps, CurrencyValue> = {
       prefix: symbolLayout === 'attached' ? element.props.prefix : '',
       suffix: element.props.suffix,
       decimalPlaces: element.props.decimalPlaces,
+      negativeStyle: element.props.negativeStyle,
     } : undefined;
     const text = source.kind === 'field' ? '' : value === '' ? '' : formatNumberValue(value, {
       mode: 'currency',
@@ -102,6 +123,7 @@ export const currencyPlugin: LayoutPDFPlugin<CurrencyProps, CurrencyValue> = {
       prefix: element.props.prefix,
       suffix: element.props.suffix,
       decimalPlaces: element.props.decimalPlaces,
+      negativeStyle: element.props.negativeStyle,
       fallback: 'raw',
     });
     const input = source.kind === 'ownValue' && element.binding ? {
