@@ -1,5 +1,38 @@
 import type { TableColumn, TableValueRow } from '@/engine/renderTree/model.js';
 
+let fallbackRowId = 0;
+
+export function createTableRowId(rows: TableValueRow[] = []): string {
+  const used = new Set(rows.map(row => row.id).filter((id): id is string => Boolean(id?.trim())));
+  let candidate = '';
+  do {
+    fallbackRowId += 1;
+    candidate = `row_${Date.now().toString(36)}_${fallbackRowId.toString(36)}`;
+  } while (used.has(candidate));
+  return candidate;
+}
+
+export function ensureTableRowIds(rows: TableValueRow[]): TableValueRow[] {
+  const used = new Set<string>();
+  let changed = false;
+  const next = rows.map(row => {
+    const id = typeof row.id === 'string' ? row.id.trim() : '';
+    if (id && !used.has(id)) {
+      used.add(id);
+      return row;
+    }
+    changed = true;
+    let candidate = '';
+    do {
+      fallbackRowId += 1;
+      candidate = `row_${Date.now().toString(36)}_${fallbackRowId.toString(36)}`;
+    } while (used.has(candidate));
+    used.add(candidate);
+    return { ...row, id: candidate };
+  });
+  return changed ? next : rows;
+}
+
 export function updateTableCell(
   rows: TableValueRow[],
   rowIndex: number,

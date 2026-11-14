@@ -552,6 +552,19 @@ describe('layoutTablePresentation', () => {
     assert.ok(right);
     assert.ok(sharedTop);
   });
+
+  it('grows inline footer rows for an explicitly larger footer font', () => {
+    const base = layoutTablePresentation(node(), fontManager, jaFormat);
+    const input = node();
+    input.computedFooters = input.computedFooters.map(footer => ({ ...footer, fontSize: 30 }));
+    const grown = layoutTablePresentation(input, fontManager, jaFormat);
+
+    assert.ok(grown.layout.height > base.layout.height);
+    const labels = grown.layout.cells.filter(cell => cell.role === 'footer-label');
+    assert.ok(labels.length > 0);
+    assert.ok(labels.every(cell => cell.box.height > input.style.rowHeight));
+    assert.ok(labels.every(cell => cell.box.height >= pdfPtToMm(30 * 1.2)));
+  });
 });
 
 describe('footer fill colors', () => {
@@ -669,6 +682,39 @@ describe('formula error presentation', () => {
 
     assert.equal(cell.text, FORMULA_ERROR);
     assert.equal(cell.backgroundColor, undefined);
+  });
+
+  it('renders an errored footer value as a localized error cell', () => {
+    const input = node();
+    input.computedFooters[0].value = FORMULA_ERROR;
+    const output = layoutTablePresentation(input, fontManager, jaFormat);
+    const cell = output.layout.cells.find(item =>
+      item.id.endsWith(`footer-value:${input.computedFooters[0].id}`)
+    )!;
+
+    assert.equal(cell.text, formulaErrorText('ja-JP'));
+    assert.equal(cell.backgroundColor, FORMULA_ERROR_BACKGROUND);
+  });
+
+  it('renders an errored footer value in a band with the error background', () => {
+    const input = node();
+    input.computedFooters[0].value = FORMULA_ERROR;
+    input.footerBand = {
+      enabled: true,
+      label: '合計',
+      startColumnKey: input.columns[0].key,
+      leadWidth: 1,
+      headerHeight: 5,
+      valueHeight: 7,
+      items: input.computedFooters.map(footer => ({ footerId: footer.id, width: 2 })),
+    };
+    const output = layoutTablePresentation(input, fontManager, enFormat);
+    const cell = output.layout.cells.find(item =>
+      item.id.endsWith(`footer-band-value:${input.computedFooters[0].id}`)
+    )!;
+
+    assert.equal(cell.text, formulaErrorText('en-US'));
+    assert.equal(cell.backgroundColor, FORMULA_ERROR_BACKGROUND);
   });
 
   it('leaves non-errored formula and number columns uncolored', () => {

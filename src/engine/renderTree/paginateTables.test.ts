@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import type { RenderDocument, RenderNode, RenderPage, TableNode, TablePaginationOptions, TableValueRow } from './model.js';
 import { paginateTableNode, paginateTables } from './paginateTables.js';
 import { defaultFormatSettingsForLocale } from '@/i18n/index.js';
+import { pdfPtToMm } from '@/engine/utils/units.js';
 
 const format = defaultFormatSettingsForLocale('ja-JP');
 
@@ -64,6 +65,7 @@ function pagination(overrides: Partial<TablePaginationOptions> = {}): TablePagin
   return {
     finalElementIds: [],
     repeatElementIds: [],
+    ignoreElementIds: [],
     rowMode: 'compact',
     minRowsOnLastPage: 1,
     gapAfterTable: 3,
@@ -72,6 +74,79 @@ function pagination(overrides: Partial<TablePaginationOptions> = {}): TablePagin
 }
 
 describe('paginateTableNode', () => {
+  it('ignores a decoration that starts above the table when resolving the source-page floor', () => {
+    const onlyRow = rows(1);
+    const node = table({
+      box: { x: 10, y: 60, width: 80, height: 20 },
+      rows: onlyRow,
+      computedRows: onlyRow.map(row => ({ ...row })),
+    });
+    const background: RenderNode = {
+      kind: 'rect',
+      id: 'el_bg:node:rect',
+      sourceElementId: 'el_bg',
+      box: { x: 5, y: 50, width: 90, height: 30 },
+      rotate: 0,
+      opacity: 1,
+      clip: false,
+      zIndex: 0,
+      fill: '#ffffff',
+    };
+    const result = paginateTableNode(node, page([node, background]));
+
+    assert.equal(result.issues.length, 0);
+    assert.equal(result.fragments.length, 1);
+    assert.equal(result.fragments[0].pageOffset, 0);
+  });
+
+  it('still treats a node that starts below the table top as a floor', () => {
+    const onlyRow = rows(1);
+    const node = table({
+      box: { x: 10, y: 70, width: 80, height: 20 },
+      rows: onlyRow,
+      computedRows: onlyRow.map(row => ({ ...row })),
+    });
+    const seal: RenderNode = {
+      kind: 'rect',
+      id: 'el_seal:node:rect',
+      sourceElementId: 'el_seal',
+      box: { x: 20, y: 75, width: 20, height: 10 },
+      rotate: 0,
+      opacity: 1,
+      clip: false,
+      zIndex: 2,
+      fill: '#ff0000',
+    };
+    const result = paginateTableNode(node, page([node, seal]));
+
+    assert.equal(result.fragments[0].pageOffset, 1);
+  });
+
+  it('honours an explicit pagination opt-out for a floor node', () => {
+    const onlyRow = rows(1);
+    const node = table({
+      box: { x: 10, y: 60, width: 80, height: 20 },
+      rows: onlyRow,
+      computedRows: onlyRow.map(row => ({ ...row })),
+      pagination: pagination({ ignoreElementIds: ['el_seal'] }),
+    });
+    const seal: RenderNode = {
+      kind: 'rect',
+      id: 'el_seal:node:rect',
+      sourceElementId: 'el_seal',
+      box: { x: 20, y: 75, width: 20, height: 10 },
+      rotate: 0,
+      opacity: 1,
+      clip: false,
+      zIndex: 2,
+      fill: '#ff0000',
+    };
+    const result = paginateTableNode(node, page([node, seal]));
+
+    assert.equal(result.issues.length, 0);
+    assert.equal(result.fragments[0].pageOffset, 0);
+  });
+
   it('repeats the header, keeps rows atomic, and includes footer only on the final fragment', () => {
     const result = paginateTableNode(table(), page());
     assert.equal(result.issues.length, 0);
@@ -117,6 +192,33 @@ describe('paginateTableNode', () => {
     });
   });
 
+  it('keeps a row that only fits the source slot on the source page', () => {
+    const sourceRows = [
+      { id: 'row_tall', amount: 1 },
+      { id: 'row_next', amount: 2 },
+      { id: 'row_last', amount: 3 },
+    ];
+    const node = table({
+      box: { x: 10, y: 35, width: 80, height: 20 },
+      rows: sourceRows,
+      computedRows: sourceRows.map(row => ({ ...row })),
+      rowHeights: [40, 7, 7],
+      continuationTitleHeight: 50,
+      pagination: pagination({ continuation: { title: 'Continued' } }),
+    });
+    const result = paginateTableNode(node, page([node]));
+
+    assert.equal(result.issues.length, 0);
+    assert.deepEqual(
+      result.fragments.map(fragment => [
+        fragment.pageOffset,
+        fragment.node.fragment?.rowStart,
+        fragment.node.fragment?.rowEnd,
+      ]),
+      [[0, 0, 2], [1, 2, 3]],
+    );
+  });
+
   it('reports a row that cannot fit on a continuation page', () => {
     const node = table({ style: { ...table().style, rowHeight: 80 } });
     const result = paginateTableNode(node, page([node]));
@@ -146,6 +248,27 @@ describe('paginateTableNode', () => {
 
     assert.equal(result.fragments.length, 0);
     assert.equal(result.issues[0].code, 'TABLE_ROW_TOO_TALL');
+  });
+
+  it('grows the final fragment for an explicitly larger footer font', () => {
+    const base = table({
+      box: { x: 10, y: 30, width: 80, height: 20 },
+      computedFooters: [{ id: 'total', label: '合計', value: 15, bold: true, fontSize: 10 }],
+    });
+    const big = table({
+      box: { x: 10, y: 30, width: 80, height: 20 },
+      computedFooters: [{ id: 'total', label: '合計', value: 15, bold: true, fontSize: 40 }],
+    });
+
+    const baseResult = paginateTableNode(base, page([base]));
+    const bigResult = paginateTableNode(big, page([big]));
+
+    assert.equal(baseResult.fragments.length, 1);
+    assert.equal(baseResult.fragments[0].pageOffset, 0);
+    assert.equal(bigResult.fragments.length, 2);
+    assert.equal(bigResult.fragments.at(-1)?.pageOffset, 1);
+    const bigHeight = bigResult.fragments.at(-1)!.node.box.height;
+    assert.ok(bigHeight > 8 + 7 + pdfPtToMm(40 * 1.2));
   });
 
   it('uses the two-row footer band height without changing row pagination rules', () => {

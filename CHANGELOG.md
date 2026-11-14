@@ -15,9 +15,32 @@ for the pre-1.0 version policy.
   the same negative-style option.
 - Grid cells and columns accept an optional `numericFormat`, so formula results
   can be formatted per cell or per column.
+- Table pagination accepts `ignoreElementIds`, so an explicitly placed floor
+  element that should not constrain page breaks can be excluded. The option is
+  additive and defaults to an empty list; existing templates load unchanged.
+- Form-mode table previews expose add-row and delete-row controls. Rows missing
+  an id, or sharing one, are repaired before an edit is reported.
+- A `TABLE_CELL_OVERFLOW` warning is reported when a numeric cell or footer
+  value is ellipsized. It is fatal only in strict mode.
+- `FontManager.getFontMetrics` exposes vertical font metrics so PDF text uses
+  the same ascent/descent and half-leading baseline as the DOM preview.
 
 ### Fixed
 
+- Table pagination derives its floor from the absolute top of the table, so a
+  decoration starting above the table no longer truncates the rows.
+- A table row that fits either the source-page slot or a continuation slot stays
+  on the page where it fits; a later row that fits neither reports
+  `TABLE_ROW_TOO_TALL` instead of looping.
+- A larger `footer.fontSize` grows only the footer rows it affects, and
+  pagination accounts for the same height the renderer uses.
+- PDF and DOM table borders agree: zero-width borders are skipped in both, and
+  PDF dash arrays scale with the stroke width.
+- PDF text baselines now account for font ascent/descent and half-leading, so
+  text at `lineHeight` 1.0, 1.5, and 3.0 sits where the DOM preview puts it.
+- A numeric or currency input cell that receives non-numeric text is marked as
+  a formula error in that cell only. A footer that depends on it stays visible
+  as an error cell but is not published as an output or derived field.
 - `ROUND`, `ROUNDUP`, `ROUNDDOWN`, `FLOOR`, and `CEIL` normalise binary
   floating-point residue before rounding, and never return `-0`. Formula
   equality and `IF` conditions use the same tolerance, so

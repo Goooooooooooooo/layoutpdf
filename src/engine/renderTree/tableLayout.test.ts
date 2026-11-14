@@ -340,6 +340,23 @@ describe('table layout calculations', () => {
     ), true);
   });
 
+  it('marks a numeric input cell as errored without touching sibling cells', () => {
+    const columns = [
+      { id: 'item', label: 'Item', key: 'item', width: 1, valueType: 'text' as const, align: 'left' as const },
+      { id: 'amount', label: 'Amount', key: 'amount', width: 1, valueType: 'number' as const, align: 'right' as const },
+      { id: 'z', label: 'Z', key: 'z', width: 1, valueType: 'number' as const, align: 'right' as const },
+    ];
+    const result = computeTableRowsResult(columns, [{ id: 'r1', item: 'A', amount: 'abc', z: 7 }]);
+
+    assert.equal(result.rows[0].amount, FORMULA_ERROR);
+    assert.equal(result.rows[0].item, 'A');
+    assert.equal(result.rows[0].z, 7);
+    assert.deepEqual(
+      result.errors.filter(error => error.kind === 'row').map(error => error.columnKey),
+      ['amount'],
+    );
+  });
+
   it('keeps RUNNING_SUM row-aware with lazy formula dependencies', () => {
     const columns = [
       {
@@ -389,9 +406,50 @@ describe('table layout calculations', () => {
       },
     ], rowResult.rows);
 
-    assert.deepEqual(footerResult.footers.map(footer => footer.id), ['independent_total']);
+    assert.deepEqual(footerResult.footers.map(footer => footer.id), ['errored_total', 'independent_total']);
+    assert.equal(footerResult.footers[0].value, FORMULA_ERROR);
+    assert.equal(footerResult.footers[1].value, 7);
     assert.deepEqual(footerResult.errors.filter(error => error.kind === 'footer').map(error => error.footerId), [
       'errored_total',
     ]);
+  });
+
+  it('keeps an errored footer visible but out of published outputs', () => {
+    const node = tableNode();
+    node.columns = [
+      { id: 'input', label: 'Input', key: 'input', width: 1, valueType: 'number', align: 'right' },
+      {
+        id: 'x',
+        label: 'X',
+        key: 'x',
+        width: 1,
+        valueType: 'formula',
+        align: 'right',
+        formula: { kind: 'expression', expression: 'row.input / 0' },
+      },
+      { id: 'z', label: 'Z', key: 'z', width: 1, valueType: 'number', align: 'right' },
+    ];
+    node.rows = [{ id: 'r1', input: 2, z: 7 }];
+    node.footers = [
+      {
+        id: 'errored_total',
+        label: 'Errored',
+        formula: { kind: 'expression', expression: 'SUM(column.x)' },
+      },
+      {
+        id: 'independent_total',
+        label: 'Independent',
+        formula: { kind: 'expression', expression: 'SUM(column.z)' },
+      },
+    ];
+
+    const computed = computeTableNode(node);
+
+    assert.deepEqual(computed.computedFooters.map(footer => footer.id), [
+      'errored_total',
+      'independent_total',
+    ]);
+    assert.equal(computed.computedFooters[0].value, FORMULA_ERROR);
+    assert.deepEqual(computed.outputs.map(output => output.id), ['independent_total']);
   });
 });

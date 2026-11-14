@@ -2,6 +2,13 @@ import type { PDFDocument, PDFFont } from 'pdf-lib';
 import type { LayoutPDFFont } from '@/engine/utils/fontTypes.js';
 import { fontkit } from '@/engine/pdf/font/fontkitRuntime.js';
 
+export interface FontVerticalMetrics {
+  /** Ascent in em units (1 = font size). */
+  ascent: number;
+  /** Descent magnitude in em units (positive). */
+  descent: number;
+}
+
 export interface FontManager {
   getDefaultFontName(): string;
   getFontBytes(name: string): Uint8Array;
@@ -10,6 +17,8 @@ export interface FontManager {
   measureText(name: string, text: string, sizePt: number): number;
   ensureBrowserFont(name: string): Promise<string>;
   resolveFontFace?(name: string, weight: 'normal' | 'bold'): ResolvedFontFace;
+  /** Vertical font metrics used to place glyph baselines consistently in PDF and DOM. */
+  getFontMetrics?(name: string): FontVerticalMetrics;
 }
 
 export interface PdfFontManager extends FontManager {
@@ -19,6 +28,8 @@ export interface PdfFontManager extends FontManager {
 
 interface ParsedFont {
   unitsPerEm: number;
+  ascent: number;
+  descent: number;
   hasGlyphForCodePoint(codePoint: number): boolean;
   layout(text: string): {
     glyphs: Array<{ advanceWidth: number }>;
@@ -125,6 +136,17 @@ export function createFontManager(
 
     getFontBytes(name) {
       return requireEntry(name).bytes;
+    },
+
+    getFontMetrics(name) {
+      const font = parsed(name);
+      if (!(font.unitsPerEm > 0) || !Number.isFinite(font.ascent) || !Number.isFinite(font.descent)) {
+        return { ascent: 0.8, descent: 0.2 };
+      }
+      return {
+        ascent: font.ascent / font.unitsPerEm,
+        descent: Math.abs(font.descent) / font.unitsPerEm,
+      };
     },
 
     assertTextSupported(name, text) {

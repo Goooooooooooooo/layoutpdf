@@ -141,6 +141,7 @@ export const jaJPMessages = {
   'error.tableFinalGroupTooTall': '表とその後に続く要素（合計、備考など）が継続ページに収まりません。',
   'error.tableFooterTooTall': '表の見出し、明細1行、集計行を継続ページ内に配置できません。',
   'error.tableRowTooTall': '表の見出しと明細1行を継続ページ内に配置できません。',
+  'error.tableCellOverflow': 'セル内容が列幅に収まらないため、省略して表示しています。',
   'error.tableContinuationDecorationTooTall': '継続ページの見出し、または繰り返し表示する要素が大きすぎるため、表の見出しと明細を配置できません。',
   'error.invalidTablePaginationMetrics': '表の改ページ設定に使用できないサイズが含まれています。',
   'error.invalidTablePaginationReference': '改ページに連動する要素は、表と同じページに配置し、1つの表だけに関連付けてください。',

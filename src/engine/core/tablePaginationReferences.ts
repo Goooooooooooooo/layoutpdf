@@ -3,6 +3,7 @@ import type { TemplateElement, TemplatePage } from '@/engine/core/document.js';
 export const TABLE_PAGINATION_REFERENCE_FIELDS = [
   'finalElementIds',
   'repeatElementIds',
+  'ignoreElementIds',
 ] as const;
 
 export type TablePaginationReferenceField = typeof TABLE_PAGINATION_REFERENCE_FIELDS[number];

@@ -139,6 +139,7 @@ export const zhCNMessages = {
   'error.tableFinalGroupTooTall': '表格与跟随的节点（合计/备注等）无法放入续页。',
   'error.tableFooterTooTall': '表格表头、一行和汇总行超过续页可用高度。',
   'error.tableRowTooTall': '表格表头和一行超过续页可用高度。',
+  'error.tableCellOverflow': '表格单元格内容过长，已截断以适配列宽。',
   'error.tableContinuationDecorationTooTall': '续页标题或重复内容占用过多空间，无法容纳表头和明细。',
   'error.invalidTablePaginationMetrics': '表格分页尺寸无效。',
   'error.invalidTablePaginationReference': '表格分页关联必须指向同页的非表格控件，且不能重复关联。',

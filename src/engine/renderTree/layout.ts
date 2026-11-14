@@ -110,6 +110,7 @@ export function layoutRenderTree(
     && issue.code !== 'TEXT_LAYOUT_FAILED'
     && issue.code !== 'GRID_CELL_OVERFLOW'
     && issue.code !== 'GRID_LAYOUT_FAILED'
+    && issue.code !== 'TABLE_CELL_OVERFLOW'
     && issue.code !== 'ELEMENT_OUTSIDE_PAGE'
     && issue.code !== 'ELEMENT_OVERFLOW_PAGE'
   );
@@ -131,6 +132,7 @@ export function layoutRenderTree(
       })
     : { pages, issues };
   const finalIssues = paginated.issues.filter(issue => issue.code !== 'TABLE_PRESENTATION_FAILED');
+  const reportedCellOverflow = new Set<string>();
   const finalPages = paginated.pages.map(page => ({
     ...page,
     nodes: page.nodes.map(node => {
@@ -150,11 +152,25 @@ export function layoutRenderTree(
       }
       if (node.kind !== 'table') return node;
       try {
-        return layoutTablePresentation(
+        const laidOut = layoutTablePresentation(
           node,
           context.fontManager,
           format,
         );
+        if (laidOut.layout.cells.some(cell => cell.truncated)) {
+          const key = `${page.sourcePageId}:${node.sourceElementId}`;
+          if (!reportedCellOverflow.has(key)) {
+            reportedCellOverflow.add(key);
+            finalIssues.push({
+              severity: 'warning',
+              code: 'TABLE_CELL_OVERFLOW',
+              message: 'Table cell content was truncated to fit its column.',
+              pageId: page.id,
+              elementId: node.sourceElementId,
+            });
+          }
+        }
+        return laidOut;
       } catch (error) {
         finalIssues.push({
           severity: 'error',

@@ -26,6 +26,7 @@ export function mergeTablePagination(
   return normalizeTablePaginationOptions({
     finalElementIds: patch.finalElementIds ?? current?.finalElementIds ?? [],
     repeatElementIds: patch.repeatElementIds ?? current?.repeatElementIds ?? [],
+    ignoreElementIds: patch.ignoreElementIds ?? current?.ignoreElementIds ?? [],
     rowMode: patch.rowMode ?? current?.rowMode,
     minRowsOnLastPage: patch.minRowsOnLastPage ?? current?.minRowsOnLastPage,
     gapAfterTable: patch.gapAfterTable ?? current?.gapAfterTable,

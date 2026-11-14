@@ -145,6 +145,17 @@ describe('resolveFieldReferences', () => {
     assert.deepEqual(output.issues, []);
   });
 
+  it('does not resolve a reference to an errored footer', () => {
+    const input = document();
+    (input.pages[0].nodes[0] as TableNode).rows = [{ id: 'row', amount: 'abc' }];
+
+    const output = resolveFieldReferences(input, {});
+    const currency = output.pages[0].nodes[1];
+
+    assert.equal(currency.kind === 'text' && currency.text, '');
+    assert.ok(output.issues.some(issue => issue.code === 'MISSING_REFERENCED_FIELD'));
+  });
+
   it('reports unresolved formulas without throwing or publishing stale values', () => {
     const input = document();
     input.pages[0].nodes[1] = formulaReference('field.missing + 1');

@@ -36,6 +36,7 @@ import { layoutTablePresentation } from '../../renderTree/tablePresentation.js';
 import { tablePlugin } from '../../../plugins/table/table.js';
 import { renderDocumentPdf, type PdfProgressEvent } from './renderDocumentPdf.js';
 import { defaultFormatSettingsForLocale } from '@/i18n/index.js';
+import { mmToPdfPt, pdfPtToMm } from '@/engine/utils/units.js';
 
 const format = defaultFormatSettingsForLocale('ja-JP');
 
@@ -706,6 +707,56 @@ describe('renderDocumentPdf', () => {
       }),
       /abort/i,
     );
+  });
+
+  it('aligns text baselines with half-leading at 1.0, 1.5, and 3.0 line heights', async () => {
+    const nodes = [1, 1.5, 3].map((lineHeight, index) => {
+      const node = textNode(`el_${index}`);
+      node.rotate = 0;
+      node.box.y = 20 + index * 20;
+      node.style.lineHeight = lineHeight;
+      node.layout = {
+        lines: [{ text: 'X', x: 1, y: 2, width: 6 }],
+        lineHeightMm: pdfPtToMm(12 * lineHeight),
+        overflow: false,
+      };
+      return node;
+    });
+    const document: RenderDocument = {
+      templateId: 'tpl_1',
+      format,
+      issues: [],
+      pages: [{
+        id: 'page_1',
+        sourcePageId: 'page_1',
+        continuationIndex: 0,
+        size: { width: 210, height: 297 },
+        padding: [10, 10, 10, 10],
+        background: { kind: 'blank', color: '#ffffff' },
+        nodes,
+      }],
+    };
+
+    const pagePrototype = Object.getPrototypeOf((await PDFDocument.create()).addPage());
+    const originalDrawText = pagePrototype.drawText;
+    const positions: number[] = [];
+    pagePrototype.drawText = function(text: string, options: { y: number }) {
+      if (text === 'X') positions.push(options.y);
+      return originalDrawText.call(this, text, options);
+    };
+    try {
+      await renderDocumentPdf({ document, file: templateFile(), fontManager: fontManager() });
+    } finally {
+      pagePrototype.drawText = originalDrawText;
+    }
+
+    const baselines = [9.6, 12.6, 21.6];
+    assert.equal(positions.length, 3);
+    nodes.forEach((node, index) => {
+      const expected = mmToPdfPt(297) - mmToPdfPt(node.box.y + 2) - baselines[index];
+      assert.ok(Math.abs(positions[index] - expected) < 0.01,
+        `line height ${node.style.lineHeight}: expected ${expected}, got ${positions[index]}`);
+    });
   });
 
   it('treats warnings as fatal only in strict mode', async () => {

@@ -15,6 +15,7 @@ export function normalizeTablePaginationOptions(
   return {
     finalElementIds: [...(value?.finalElementIds ?? TABLE_PAGINATION_DEFAULTS.finalElementIds)],
     repeatElementIds: [...(value?.repeatElementIds ?? TABLE_PAGINATION_DEFAULTS.repeatElementIds)],
+    ignoreElementIds: [...(value?.ignoreElementIds ?? TABLE_PAGINATION_DEFAULTS.ignoreElementIds)],
     rowMode: value?.rowMode ?? TABLE_PAGINATION_DEFAULTS.rowMode,
     minRowsOnLastPage: value?.minRowsOnLastPage ?? TABLE_PAGINATION_DEFAULTS.minRowsOnLastPage,
     gapAfterTable: value?.gapAfterTable ?? TABLE_PAGINATION_DEFAULTS.gapAfterTable,

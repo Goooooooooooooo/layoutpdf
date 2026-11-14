@@ -1,0 +1,29 @@
+{
+  "pageCount": 1,
+  "pages": [
+    {
+      "width": 595.28,
+      "height": 841.89,
+      "text": [
+        {
+          "text": "Line height 1.0",
+          "x": 62.36,
+          "y": 765.79,
+          "width": 81.62
+        },
+        {
+          "text": "Line height 1.5",
+          "x": 62.36,
+          "y": 703.43,
+          "width": 81.62
+        },
+        {
+          "text": "Line height 3.0",
+          "x": 62.36,
+          "y": 604.22,
+          "width": 81.62
+        }
+      ]
+    }
+  ]
+}

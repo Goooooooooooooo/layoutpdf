@@ -1,6 +1,7 @@
 export const TABLE_PAGINATION_DEFAULTS = {
   finalElementIds: [] as readonly string[],
   repeatElementIds: [] as readonly string[],
+  ignoreElementIds: [] as readonly string[],
   rowMode: 'compact' as const,
   minRowsOnLastPage: 1,
   gapAfterTable: 3,

@@ -4,6 +4,7 @@ import { mmToPdfPt } from '@/engine/utils/units.js';
 import type { TextNode } from '@/engine/renderTree/model.js';
 import type { PdfNodeRenderContext } from '@/engine/pdf/render/types.js';
 import { drawTextPdf } from '@/engine/pdf/render/drawTextPdf.js';
+import { textBaselineFromLineTopPt } from '@/engine/renderTree/textBaseline.js';
 
 function dashArray(style: 'solid' | 'dashed' | 'dotted'): number[] | undefined {
   if (style === 'dashed') return [4, 3];
@@ -19,6 +20,11 @@ export async function renderTextPdf(
   const pageHeight = page.getHeight();
   const fontName = node.style.fontName || fontManager.getDefaultFontName();
   const font = await fontManager.embedPdfFont(pdfDoc, fontName) as PDFFont;
+  const baselineOffset = textBaselineFromLineTopPt(
+    node.style.fontSize,
+    node.layout.lineHeightMm,
+    fontManager.getFontMetrics?.(fontName),
+  );
 
   const border = node.style.border;
   const hasVisibleBorder = border && border.width > 0;
@@ -49,7 +55,7 @@ export async function renderTextPdf(
     if (!line.text) continue;
     drawTextPdf(page, line.text, {
       x: mmToPdfPt(node.box.x + line.x),
-      y: pageHeight - mmToPdfPt(node.box.y + line.y) - node.style.fontSize,
+      y: pageHeight - mmToPdfPt(node.box.y + line.y) - baselineOffset,
       size: node.style.fontSize,
       font,
       color: rgb(color.r, color.g, color.b),

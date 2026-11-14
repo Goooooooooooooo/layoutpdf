@@ -17,9 +17,12 @@ import { formulaErrorText } from '@/i18n/locales.js';
 import { resolveHeaderAlign } from '@/engine/renderTree/tableAlign.js';
 import { resolveTableFooterBorderEdges } from '@/engine/renderTree/tableFooterBorders.js';
 import { formatNumericPresentation } from '@/engine/renderTree/numericPresentation.js';
+import { tableFooterRowHeight } from '@/engine/renderTree/tableFooterMetrics.js';
 import { wrapMeasuredText } from '@/engine/renderTree/textLayout.js';
 
 export const DEFAULT_TABLE_CELL_PADDING_MM = 1.5;
+/** Minimum breathing room between an edge-laid currency symbol and its digits. */
+const NUMERIC_PREFIX_GAP_MM = 0.5;
 
 export const FORMULA_ERROR_BACKGROUND = '#fee2e2';
 
@@ -34,7 +37,10 @@ function displayValue(
   column: TableColumn,
   format: FormatLocaleSettings,
 ): DisplayValue {
-  if (column.valueType === 'formula' && value === FORMULA_ERROR) {
+  if (value === FORMULA_ERROR
+    && (column.valueType === 'formula'
+      || column.valueType === 'number'
+      || column.valueType === 'currency')) {
     return { text: formulaErrorText(format.locale), error: true };
   }
   if (value === undefined || value === null || value === '') {
@@ -77,15 +83,15 @@ function fitText(
   fontManager: FontManager,
   fontName: string,
   fontSize: number,
-): { text: string; width: number } {
+): { text: string; width: number; truncated: boolean } {
   fontManager.assertTextSupported(fontName, text);
   const fullWidth = measureMm(fontManager, fontName, text, fontSize);
-  if (fullWidth <= maxWidth) return { text, width: fullWidth };
+  if (fullWidth <= maxWidth) return { text, width: fullWidth, truncated: false };
 
   const suffix = '...';
   fontManager.assertTextSupported(fontName, suffix);
   const suffixWidth = measureMm(fontManager, fontName, suffix, fontSize);
-  if (suffixWidth > maxWidth) return { text: '', width: 0 };
+  if (suffixWidth > maxWidth) return { text: '', width: 0, truncated: text.length > 0 };
 
   const chars = Array.from(text);
   let low = 0;
@@ -102,7 +108,11 @@ function fitText(
     }
   }
   const fitted = chars.slice(0, length).join('') + suffix;
-  return { text: fitted, width: measureMm(fontManager, fontName, fitted, fontSize) };
+  return {
+    text: fitted,
+    width: measureMm(fontManager, fontName, fitted, fontSize),
+    truncated: true,
+  };
 }
 
 function textX(
@@ -200,6 +210,12 @@ function createCell(args: {
   );
   const lineHeightMm = pdfPtToMm(args.fontSize * 1.2);
   const maxTextWidth = Math.max(0, args.width - args.padding * 2);
+  const prefix = args.prefixText
+    ? fitText(args.prefixText, maxTextWidth, args.fontManager, face.name, args.fontSize)
+    : undefined;
+  const textBudget = prefix
+    ? Math.max(0, maxTextWidth - prefix.width - NUMERIC_PREFIX_GAP_MM)
+    : maxTextWidth;
   const wrapped = args.wrap
     ? wrapMeasuredText(
         args.text,
@@ -211,14 +227,13 @@ function createCell(args: {
     : undefined;
   const fitted = wrapped?.[0] ?? fitText(
     args.text,
-    maxTextWidth,
+    textBudget,
     args.fontManager,
     face.name,
     args.fontSize,
   );
-  const prefix = args.prefixText
-    ? fitText(args.prefixText, Math.max(0, args.width - args.padding * 2), args.fontManager, face.name, args.fontSize)
-    : undefined;
+  const truncated = Boolean(prefix?.truncated)
+    || (!wrapped && 'truncated' in fitted && fitted.truncated);
   const contentHeight = Math.max(0, args.height - args.padding * 2);
   const textBlockHeight = (wrapped?.length ?? 1) * lineHeightMm;
   const textBlockY = args.y + args.padding + Math.max(0, (contentHeight - textBlockHeight) / 2);
@@ -240,6 +255,7 @@ function createCell(args: {
     prefixText: prefix?.text,
     prefixTextX: prefix ? args.x + args.padding : undefined,
     prefixTextWidth: prefix?.width,
+    ...(truncated ? { truncated: true } : {}),
     lineHeightMm,
     fontSize: args.fontSize,
     align: args.align,
@@ -484,6 +500,25 @@ function removeSharedFooterBoundary(
   });
 }
 
+function footerValuePresentation(
+  footer: TableNode['computedFooters'][number],
+  format: FormatLocaleSettings,
+): DisplayValue & { backgroundColor?: string } {
+  if (footer.value === FORMULA_ERROR) {
+    return {
+      text: formulaErrorText(format.locale),
+      error: true,
+      backgroundColor: FORMULA_ERROR_BACKGROUND,
+    };
+  }
+  return formatNumericPresentation(
+    footer.value,
+    footer.numericFormat,
+    footer.decimalPlaces ?? 0,
+    format,
+  );
+}
+
 function footerBoxes(
   footer: TableNode['computedFooters'][number],
   columns: TableColumn[],
@@ -699,7 +734,7 @@ export function layoutTablePresentation(
           y: y + band.headerHeight,
           width: box.width,
           height: band.valueHeight,
-          ...formatNumericPresentation(footer.value, footer.numericFormat, footer.decimalPlaces ?? 0, format),
+          ...footerValuePresentation(footer, format),
           align: 'right',
           color: node.style.bodyColor,
           bold: footer.bold,
@@ -713,13 +748,19 @@ export function layoutTablePresentation(
     } else for (const footer of node.computedFooters) {
       const boxes = footerBoxes(footer, node.columns, xPositions, widths, node.box.width);
       const fontSize = footer.fontSize ?? node.style.fontSize;
+      const rowHeight = tableFooterRowHeight({
+        rowHeight: node.style.rowHeight,
+        baseFontSize: node.style.fontSize,
+        fontSize: footer.fontSize,
+        cellPadding,
+      });
       cells.push(createCell({
         id: `${node.id}:footer-label:${footer.id}`,
         role: 'footer-label',
         x: boxes.label.x,
         y,
         width: boxes.label.width,
-        height: node.style.rowHeight,
+        height: rowHeight,
         text: footer.label,
         align: 'right',
         color: footerColor,
@@ -736,8 +777,8 @@ export function layoutTablePresentation(
         x: boxes.value.x,
         y,
         width: boxes.value.width,
-        height: node.style.rowHeight,
-        ...formatNumericPresentation(footer.value, footer.numericFormat, footer.decimalPlaces ?? 0, format),
+        height: rowHeight,
+        ...footerValuePresentation(footer, format),
         align: 'right',
         color: node.style.bodyColor,
         bold: footer.bold,
@@ -746,7 +787,7 @@ export function layoutTablePresentation(
         fontSize,
         padding: cellPadding,
       }));
-      y += node.style.rowHeight;
+      y += rowHeight;
     }
   }
 
