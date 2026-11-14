@@ -141,6 +141,7 @@ export const enUSMessages = {
   'error.tableFinalGroupTooTall': 'The table and its following nodes (totals/notes) cannot fit on a continuation page.',
   'error.tableFooterTooTall': 'The table header, one row, and footer exceed the continuation content height.',
   'error.tableRowTooTall': 'The table header and one row exceed the continuation content height.',
+  'error.tableCellOverflow': 'Table cell content was truncated to fit its column.',
   'error.tableContinuationDecorationTooTall': 'The continuation title or repeated content leaves too little room for the table header and rows.',
   'error.invalidTablePaginationMetrics': 'Table pagination metrics are invalid.',
   'error.invalidTablePaginationReference': 'Table pagination links must target non-table elements on the same page without duplicate ownership.',

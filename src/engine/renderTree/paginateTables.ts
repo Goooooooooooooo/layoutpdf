@@ -8,6 +8,7 @@ import type {
   TextNode,
 } from '@/engine/renderTree/model.js';
 import { normalizeTablePaginationOptions } from '@/engine/renderTree/tablePaginationOptions.js';
+import { tableFooterRowHeight } from '@/engine/renderTree/tableFooterMetrics.js';
 import { pdfPtToMm } from '@/engine/utils/units.js';
 
 export interface TableFragment {
@@ -30,7 +31,12 @@ function footerHeight(node: TableNode): number {
   if (node.footerBand?.enabled) {
     return node.footerBand.headerHeight + node.footerBand.valueHeight;
   }
-  return node.computedFooters.length * node.style.rowHeight;
+  return node.computedFooters.reduce((height, footer) => height + tableFooterRowHeight({
+    rowHeight: node.style.rowHeight,
+    baseFontSize: node.style.fontSize,
+    fontSize: footer.fontSize,
+    cellPadding: node.style.cellPadding ?? 1.5,
+  }), 0);
 }
 
 function rowHeightAt(node: TableNode, rowIndex: number): number {
@@ -174,7 +180,9 @@ function resolveFixedBottom(
   let bottom = pageContentBottom(page);
   for (const node of page.nodes) {
     if (node.id === table.id || excludedIds.has(node.id)) continue;
-    if (node.box.y + node.box.height <= table.box.y + EPSILON_MM) continue;
+    // A node that starts above the table top is a decoration the table is allowed to
+    // flow past; only nodes anchored at or below the table top act as a floor.
+    if (node.box.y < table.box.y - EPSILON_MM) continue;
     if (!horizontalOverlapAny(node, flowNodes)) continue;
     bottom = Math.min(bottom, node.box.y - gap);
   }
@@ -273,7 +281,14 @@ function planTable(root: TableNode, page: RenderPage): TablePlan {
 
   const sourceStart = root.box.y;
   const flowNodes = [root, ...finalNodes];
-  const hardBottom = resolveFixedBottom(page, root, flowNodes, finalNodeIds, opts.gapAfterTable);
+  const ignoredElementIds = new Set(opts.ignoreElementIds);
+  const floorExcludedIds = new Set([
+    ...finalNodeIds,
+    ...page.nodes
+      .filter(node => ignoredElementIds.has(node.sourceElementId))
+      .map(node => node.id),
+  ]);
+  const hardBottom = resolveFixedBottom(page, root, flowNodes, floorExcludedIds, opts.gapAfterTable);
   const sourceAvail = Math.max(0, hardBottom - sourceStart);
   const finalBlockHeight = stackedGroupHeight(finalNodes);
   const extra = groupExtra(finalNodes, finalGap);
@@ -357,8 +372,11 @@ function planTable(root: TableNode, page: RenderPage): TablePlan {
     )]);
   }
 
-  // Every row is atomic, so each measured row must fit below the repeated header.
-  if (measuredRowHeights.some(height => !fits(header + height, slotH))) {
+  // Every row is atomic. A row may live on the source page or on a continuation
+  // page, so it is only too tall when neither slot can contain it.
+  if (measuredRowHeights.some(height =>
+    !fits(header + height, sourceAvail) && !fits(header + height, slotH)
+  )) {
     if (
       hasContinuationDecoration
       && measuredRowHeights.every(height => fits(header + height, fullContinuationHeight))
@@ -403,8 +421,16 @@ function planTable(root: TableNode, page: RenderPage): TablePlan {
       rowEnd += 1;
     }
     if (rowEnd === rowStart) {
-      pageOffset += 1;
-      continue;
+      if (pageOffset === 0) {
+        pageOffset += 1;
+        continue;
+      }
+      return finish(fragments, [tableIssue(
+        root,
+        page,
+        'TABLE_ROW_TOO_TALL',
+        'Table header and one row exceed the continuation page content height.',
+      )]);
     }
     fragments.push({ pageOffset, node: fragmentNode(root, pageOffset, rowStart, rowEnd, y, false, false) });
     rowStart = rowEnd;

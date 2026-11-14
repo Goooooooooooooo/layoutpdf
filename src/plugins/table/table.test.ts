@@ -26,6 +26,7 @@ describe('tablePlugin', () => {
     assert.deepEqual(element.props.pagination, {
       finalElementIds: [],
       repeatElementIds: [],
+      ignoreElementIds: [],
       rowMode: 'compact',
       minRowsOnLastPage: 1,
       gapAfterTable: 3,
@@ -39,6 +40,7 @@ describe('tablePlugin', () => {
     assert.deepEqual(TablePaginationSchema.parse({ rowMode: 'preserve', followGroupId: 'legacy_group' }), {
       finalElementIds: [],
       repeatElementIds: [],
+      ignoreElementIds: [],
       rowMode: 'preserve',
       minRowsOnLastPage: 1,
       gapAfterTable: 3,
@@ -144,6 +146,7 @@ describe('tablePlugin', () => {
     assert.deepEqual(node.kind === 'table' && node.pagination, {
       finalElementIds: [],
       repeatElementIds: [],
+      ignoreElementIds: [],
       rowMode: 'preserve',
       minRowsOnLastPage: 1,
       gapAfterTable: 3,

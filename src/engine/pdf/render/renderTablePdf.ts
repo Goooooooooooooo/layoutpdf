@@ -4,10 +4,12 @@ import { mmToPdfPt } from '@/engine/utils/units.js';
 import type { TableNode } from '@/engine/renderTree/model.js';
 import type { PdfNodeRenderContext } from '@/engine/pdf/render/types.js';
 import { drawTextPdf } from '@/engine/pdf/render/drawTextPdf.js';
+import { textBaselineFromLineTopPt } from '@/engine/renderTree/textBaseline.js';
 
-function dashArray(style: TableNode['style']['border']['style']): number[] | undefined {
-  if (style === 'dashed') return [4, 3];
-  if (style === 'dotted') return [1, 2];
+function dashArray(style: TableNode['style']['border']['style'], width: number): number[] | undefined {
+  if (!(width > 0)) return undefined;
+  if (style === 'dashed') return [4 * width, 3 * width];
+  if (style === 'dotted') return [width, 2 * width];
   return undefined;
 }
 
@@ -42,10 +44,15 @@ export async function renderTablePdf(
       if (!line.text) continue;
       const fontName = cell.fontName || context.fontManager.getDefaultFontName();
       const font = await context.fontManager.embedPdfFont(context.pdfDoc, fontName) as PDFFont;
+      const baselineOffset = textBaselineFromLineTopPt(
+        cell.fontSize,
+        cell.lineHeightMm,
+        context.fontManager.getFontMetrics?.(fontName),
+      );
       const color = hex2Rgb(cell.color);
       drawTextPdf(context.page, line.text, {
         x: mmToPdfPt(node.box.x + line.x),
-        y: pageHeight - mmToPdfPt(node.box.y + line.y) - cell.fontSize,
+        y: pageHeight - mmToPdfPt(node.box.y + line.y) - baselineOffset,
         size: cell.fontSize,
         font,
         color: rgb(color.r, color.g, color.b),
@@ -55,10 +62,15 @@ export async function renderTablePdf(
     if (cell.prefixText && cell.prefixTextX !== undefined) {
       const fontName = cell.fontName || context.fontManager.getDefaultFontName();
       const font = await context.fontManager.embedPdfFont(context.pdfDoc, fontName) as PDFFont;
+      const baselineOffset = textBaselineFromLineTopPt(
+        cell.fontSize,
+        cell.lineHeightMm,
+        context.fontManager.getFontMetrics?.(fontName),
+      );
       const color = hex2Rgb(cell.color);
       drawTextPdf(context.page, cell.prefixText, {
         x: mmToPdfPt(node.box.x + cell.prefixTextX),
-        y: pageHeight - mmToPdfPt(node.box.y + cell.textY) - cell.fontSize,
+        y: pageHeight - mmToPdfPt(node.box.y + cell.textY) - baselineOffset,
         size: cell.fontSize,
         font,
         color: rgb(color.r, color.g, color.b),
@@ -69,6 +81,7 @@ export async function renderTablePdf(
 
   for (const line of node.layout.lines) {
     const border = line.border ?? node.style.border;
+    if (!(border.width > 0)) continue;
     const borderColor = hex2Rgb(border.color);
     context.page.drawLine({
       start: {
@@ -81,7 +94,7 @@ export async function renderTablePdf(
       },
       thickness: border.width,
       color: rgb(borderColor.r, borderColor.g, borderColor.b),
-      dashArray: dashArray(border.style),
+      dashArray: dashArray(border.style, border.width),
       opacity: node.opacity,
     });
   }

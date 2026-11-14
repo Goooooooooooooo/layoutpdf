@@ -102,6 +102,26 @@ export function computeTableRowsResult(
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
     const row: TableValueRow = { ...rows[rowIndex] };
 
+    // A numeric/currency input column that receives text is not coerced to zero.
+    // Mark only that cell so other cells and formulas keep their own state.
+    for (const column of columns) {
+      if (column.valueType !== 'number' && column.valueType !== 'currency') continue;
+      const raw = row[column.key];
+      if (raw === undefined || raw === null || raw === '') continue;
+      try {
+        numericRowValue(raw, column.key);
+      } catch (error) {
+        row[column.key] = FORMULA_ERROR;
+        errors.push({
+          kind: 'row',
+          rowId: row.id,
+          rowIndex,
+          columnKey: column.key,
+          message: error instanceof Error ? error.message : 'Table value is not numeric.',
+        });
+      }
+    }
+
     const values = new Map<string, number | typeof FORMULA_ERROR>();
     const resolving = new Set<string>();
 
@@ -250,7 +270,20 @@ export function computeTableFootersResult(
       });
     } catch (error) {
       if (isPendingFormulaReference(error)) throw error;
-      // Footer is recorded in errors; it is excluded from computedFooters and outputs.
+      computedFooters.push({
+        id: footer.id,
+        label: footer.label,
+        value: FORMULA_ERROR,
+        bold: footer.bold ?? false,
+        ...(footer.fontSize === undefined ? {} : { fontSize: footer.fontSize }),
+        ...(footer.startColumnKey === undefined ? {} : { startColumnKey: footer.startColumnKey }),
+        ...(footer.valueColumnKey === undefined ? {} : { valueColumnKey: footer.valueColumnKey }),
+        ...(footer.outputFieldKey === undefined ? {} : { outputFieldKey: footer.outputFieldKey }),
+        ...(footer.decimalPlaces === undefined ? {} : { decimalPlaces: footer.decimalPlaces }),
+        ...(footer.numericFormat === undefined ? {} : { numericFormat: { ...footer.numericFormat } }),
+      });
+      // Footer is recorded in errors; it stays visible as an error cell but is
+      // excluded from published outputs.
     }
   }
   return { footers: computedFooters, errors };
@@ -325,14 +358,16 @@ export function computeTableNode(node: TableNode): TableNode {
       items: node.footerBand.items.map(item => ({ ...item })),
     } : undefined,
     computedFooters,
-    outputs: computedFooters.map(footer => ({
+    outputs: computedFooters
+      .filter(footer => typeof footer.value === 'number')
+      .map(footer => ({
       id: footer.id,
       kind: 'number' as const,
       label: footer.label,
       // Publishers and summaries must expose the same rounded value the table
       // prints, otherwise the total shown in the footer and the total copied
       // into a summary block disagree.
-      value: roundDecimal(footer.value, footer.decimalPlaces ?? 0),
+      value: roundDecimal(footer.value as number, footer.decimalPlaces ?? 0),
       decimalPlaces: footer.decimalPlaces ?? 0,
       ...(footer.numericFormat ? { numericFormat: { ...footer.numericFormat } } : {}),
     })),

@@ -154,6 +154,82 @@ describe('renderTablePdf', () => {
     }
   });
 
+  it('skips zero-width table borders and scales dash patterns with the stroke width', async () => {
+    const manager = fontManager();
+    const element = tablePlugin.createDefaultElement({ id: 'el_table', position: { x: 10, y: 20 } });
+    element.props.columns = [{
+      id: 'col_amount',
+      label: 'Amount',
+      key: 'amount',
+      width: 1,
+      valueType: 'number',
+      align: 'right',
+    }];
+    element.props.footers = [];
+    const logical = tablePlugin.buildRenderNodes({
+      element,
+      value: [{ id: 'row_1', amount: 1 }],
+      context: {
+        pageId: 'page_1',
+        pageSize: { width: 210, height: 297 },
+        input: {},
+        fontManager: manager,
+        format: enFormat,
+        createNodeId: localId => `el_table:node:${localId}`,
+        report: () => {},
+      },
+    })[0] as TableNode;
+    const laidOut = layoutTablePresentation(
+      measureTableRowHeights(computeTableNode(logical), manager, enFormat),
+      manager,
+      enFormat,
+    );
+    laidOut.layout.lines = [
+      {
+        from: { x: 0, y: 0 },
+        to: { x: 10, y: 0 },
+        border: { width: 2, color: '#000000', style: 'dashed' },
+      },
+      {
+        from: { x: 0, y: 1 },
+        to: { x: 10, y: 1 },
+        border: { width: 0, color: '#000000', style: 'dashed' },
+      },
+    ];
+
+    const pagePrototype = Object.getPrototypeOf((await PDFDocument.create()).addPage());
+    const originalDrawLine = pagePrototype.drawLine;
+    const drawnLines: Array<Record<string, unknown>> = [];
+    pagePrototype.drawLine = function(options: Record<string, unknown>) {
+      drawnLines.push(options);
+      return originalDrawLine.call(this, options);
+    };
+    try {
+      await renderDocumentPdf({
+        document: {
+          templateId: 'tpl_1',
+          format: enFormat,
+          issues: [],
+          pages: [{
+            id: 'page_1',
+            sourcePageId: 'page_1',
+            continuationIndex: 0,
+            size: { width: 210, height: 297 },
+            padding: [10, 10, 10, 10],
+            background: { kind: 'blank', color: '#ffffff' },
+            nodes: [laidOut],
+          }],
+        },
+        file: templateFile(),
+        fontManager: manager,
+      });
+      assert.equal(drawnLines.length, 1);
+      assert.deepEqual(drawnLines[0].dashArray, [8, 6]);
+    } finally {
+      pagePrototype.drawLine = originalDrawLine;
+    }
+  });
+
   it('renders error cells with placeholder text and the error background without throwing', async () => {
     const manager = fontManager();
     const laidOut = layoutTablePresentation(tableNodeWithFormulaError(), manager, enFormat);

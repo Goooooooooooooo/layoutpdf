@@ -23,6 +23,8 @@ export function resolveFormulaFields(
     for (const node of page.nodes) {
       if (node.kind !== 'table') continue;
       for (const footer of node.computedFooters) {
+        // Errored footers stay visible but are not exposed as derived fields.
+        if (typeof footer.value !== 'number') continue;
         const published = roundDecimal(footer.value, footer.decimalPlaces ?? 0);
         derivedFields.set(createFormulaOutputReference(node.sourceElementId, footer.id), published);
         const key = footer.outputFieldKey?.trim();

@@ -226,7 +226,7 @@ export interface TableFooter {
 export interface ComputedTableFooter {
   id: string;
   label: string;
-  value: number;
+  value: number | typeof FORMULA_ERROR;
   bold: boolean;
   fontSize?: number;
   startColumnKey?: string;
@@ -293,6 +293,8 @@ export interface TableLayoutCell {
   rowIndex?: number;
   columnKey?: string;
   valueType?: TableColumn['valueType'];
+  /** True when text was ellipsized to fit the cell. */
+  truncated?: boolean;
 }
 
 export interface TableLayoutLine {
@@ -312,6 +314,8 @@ export interface TablePaginationOptions {
   finalElementIds: string[];
   /** Page decorations cloned onto every continuation page for this table. */
   repeatElementIds: string[];
+  /** Elements that overlap the table but must never constrain its pagination. */
+  ignoreElementIds: string[];
   rowMode: 'compact' | 'preserve';
   minRowsOnLastPage: number;
   gapAfterTable: number;

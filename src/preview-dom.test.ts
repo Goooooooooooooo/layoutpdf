@@ -66,6 +66,30 @@ function createDocument() {
   return engine.createDocument(template, { message: 'Hello DOM' }).preview();
 }
 
+function createTableDocument() {
+  const engine = createEngine({ plugins: defaultPlugins, fontManager });
+  const template = engine
+    .createTemplate({ name: 'Table form' })
+    .addElement('table', {
+      x: 10,
+      y: 10,
+      box: { width: 100, height: 40 },
+      props: {
+        columns: [
+          { id: 'col_item', label: 'Item', key: 'item', width: 2, valueType: 'text', align: 'left' },
+          { id: 'col_amount', label: 'Amount', key: 'amount', width: 1, valueType: 'number', align: 'right' },
+        ],
+        footers: [],
+      },
+      value: [
+        { id: 'row_a', item: 'A', amount: 1 },
+        { id: 'row_b', item: 'B', amount: 2 },
+      ],
+    })
+    .build();
+  return engine.createDocument(template, {}).preview();
+}
+
 describe('preview-dom', () => {
   it('renders pages and nodes without React', () => {
     const documentModel = createDocument();
@@ -130,6 +154,87 @@ describe('preview-dom', () => {
     input.value = 'Globex';
     input.dispatchEvent(new window.Event('input', { bubbles: true }));
     assert.deepEqual(changes, [['customer', 'Globex']]);
+  });
+
+  it('skips zero-width table border lines in the preview', () => {
+    const engine = createEngine({ plugins: defaultPlugins, fontManager });
+    const template = engine
+      .createTemplate({ name: 'Table borders' })
+      .addElement('table', {
+        x: 10,
+        y: 10,
+        box: { width: 80, height: 30 },
+        props: {
+          columns: [
+            { id: 'col_item', label: 'Item', key: 'item', width: 1, valueType: 'text', align: 'left' },
+          ],
+          footers: [],
+          style: {
+            headerHeight: 8,
+            rowHeight: 7,
+            fontSize: 10,
+            cellPadding: 1.5,
+            headerBold: true,
+            border: { width: 0, color: '#000000', style: 'solid' },
+            headerBackground: '#f5f5f5',
+            headerColor: '#000000',
+            bodyColor: '#333333',
+          },
+        },
+        value: [{ id: 'row_1', item: 'A' }],
+      })
+      .build();
+    const documentModel = engine.createDocument(template, {}).preview();
+    const root = renderDomPreview(documentModel, { zoom: 1 });
+
+    assert.ok(root.querySelector('[data-node-kind="table"]'));
+    assert.equal(root.querySelectorAll('svg line').length, 0);
+  });
+
+  it('adds and removes table rows in form mode with generated ids', () => {
+    const changes: Array<[string, unknown]> = [];
+    const handle = createDomPreview(createTableDocument(), {
+      mode: 'form',
+      onInputChange: (key, value) => changes.push([key, value]),
+    });
+
+    const removeButtons = handle.element.querySelectorAll<HTMLButtonElement>('[data-table-row-action="remove"]');
+    assert.equal(removeButtons.length, 2);
+    removeButtons[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    assert.equal(changes.length, 1);
+    assert.deepEqual((changes[0][1] as Array<{ id: string }>).map(row => row.id), ['row_a']);
+
+    const add = handle.element.querySelector<HTMLButtonElement>('[data-table-row-action="add"]');
+    assert.ok(add);
+    add.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    assert.equal(changes.length, 2);
+    const added = changes[1][1] as Array<{ id: string }>;
+    assert.equal(added.length, 3);
+    assert.ok(added.every(row => Boolean(row.id)));
+    assert.equal(new Set(added.map(row => row.id)).size, 3);
+  });
+
+  it('keeps focus and caret in a table input across per-node updates', () => {
+    const documentModel = createTableDocument();
+    const handle = createDomPreview(documentModel, { mode: 'form', onInputChange: () => {} });
+    window.document.body.appendChild(handle.element);
+    const input = handle.element.querySelector<HTMLInputElement>('[data-preview-input-locator*=":row:"]');
+    assert.ok(input);
+    input.focus();
+    input.value = 'AB';
+    input.setSelectionRange(1, 1);
+
+    const next = structuredClone(documentModel);
+    const table = next.pages[0].nodes.find(node => node.kind === 'table');
+    assert.ok(table && table.kind === 'table');
+    table.rows[0].item = 'AB';
+
+    handle.update(next);
+
+    const active = window.document.activeElement as HTMLInputElement | null;
+    assert.ok(active?.dataset.previewInputLocator?.includes(':row:row_a:item'));
+    assert.equal(active?.selectionStart, 1);
+    handle.element.remove();
   });
 
   it('uses plugin DOM renderers that return a DOM node', () => {

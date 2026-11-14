@@ -76,6 +76,8 @@ export function computeProducerNodes(document: RenderDocument): RenderDocument {
           });
         }
         for (const footer of computed.computedFooters) {
+          // Errored footers stay visible in the table but are not published.
+          if (typeof footer.value !== 'number') continue;
           const published = roundDecimal(footer.value, footer.decimalPlaces ?? 0);
           sharedFields[createFormulaOutputReference(computed.sourceElementId, footer.id)] = published;
           const key = footer.outputFieldKey?.trim();

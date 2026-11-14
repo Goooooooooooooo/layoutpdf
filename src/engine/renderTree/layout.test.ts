@@ -289,6 +289,7 @@ describe('layoutRenderTree', () => {
       pagination: {
         finalElementIds: ['el_group'],
         repeatElementIds: [],
+        ignoreElementIds: [],
         rowMode: 'compact',
         minRowsOnLastPage: 1,
         gapAfterTable: 3,
@@ -325,5 +326,64 @@ describe('layoutRenderTree', () => {
     assert.deepEqual(output.pages[0].nodes.map(node => node.kind), ['table', 'rect']);
     const rect = output.pages[0].nodes[1];
     assert.equal(rect.kind === 'rect' && rect.box.y, 90);
+  });
+
+  it('warns once when numeric and footer cells are silently truncated', () => {
+    const element = tablePlugin.createDefaultElement({ id: 'el_table', position: { x: 10, y: 10 } });
+    element.box.width = 24;
+    element.box.height = 40;
+    element.props.columns = [{
+      id: 'amount',
+      label: '金額',
+      key: 'amount',
+      width: 1,
+      valueType: 'currency',
+      align: 'right',
+    }];
+    element.props.footers = [{
+      id: 'total',
+      label: '非常に長い合計ラベルです',
+      formula: { kind: 'expression', expression: 'SUM(column.amount)' },
+      valueColumnKey: 'amount',
+    }];
+    const table = tablePlugin.buildRenderNodes({
+      element,
+      value: [{ id: 'row_1', amount: 123456789012345 }],
+      context: {
+        pageId: 'page_1',
+        pageSize: { width: 210, height: 297 },
+        input: {},
+        fontManager,
+        format,
+        createNodeId: localId => `el_table:node:${localId}`,
+        report: () => {},
+      },
+    })[0];
+    const input: RenderDocument = {
+      templateId: 'tpl_1',
+      format,
+      issues: [],
+      pages: [{
+        id: 'page_1',
+        sourcePageId: 'page_1',
+        continuationIndex: 0,
+        size: { width: 210, height: 297 },
+        padding: [10, 10, 10, 10],
+        background: { kind: 'blank' },
+        nodes: [table],
+      }],
+    };
+
+    const output = layoutRenderTree(computeProducerNodes(input), { fontManager }, { paginate: false });
+    const warnings = output.issues.filter(issue => issue.code === 'TABLE_CELL_OVERFLOW');
+    assert.equal(warnings.length, 1);
+    assert.equal(warnings[0].severity, 'warning');
+    assert.equal(warnings[0].elementId, 'el_table');
+    const laidOut = output.pages[0].nodes[0];
+    assert.ok(laidOut.kind === 'table');
+    assert.ok(laidOut.layout.cells.some(cell => cell.truncated));
+
+    const again = layoutRenderTree(output, { fontManager }, { paginate: false });
+    assert.equal(again.issues.filter(issue => issue.code === 'TABLE_CELL_OVERFLOW').length, 1);
   });
 });

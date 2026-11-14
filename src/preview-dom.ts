@@ -16,7 +16,7 @@ import type {
 } from '@/engine/renderTree/model.js';
 import { DEFAULT_TABLE_CELL_PADDING_MM } from '@/engine/renderTree/tablePresentation.js';
 import { SYNTHETIC_BOLD_OFFSET_PT } from '@/engine/renderTree/textWeight.js';
-import { updateTableCell } from '@/editor/utils/tableInput.js';
+import { updateTableCell, appendTableRow, removeTableRow, ensureTableRowIds, createTableRowId } from '@/editor/utils/tableInput.js';
 import { mmToCssPx, ptToCssPx } from '@/engine/utils/units.js';
 
 export type DomPreviewMode = 'preview' | 'form';
@@ -115,6 +115,7 @@ function applyInputOverlay(
   if (input.kind === 'checkbox' || (input.kind === 'radio' && input.optionValue !== undefined)) {
     const control = document.createElement('input');
     control.type = input.kind === 'checkbox' ? 'checkbox' : 'radio';
+    control.dataset.previewInputLocator = `${node.id}:input:${input.key}:${input.optionValue ?? ''}`;
     control.name = input.key;
     control.required = input.required ?? false;
     control.checked = input.kind === 'checkbox'
@@ -137,6 +138,7 @@ function applyInputOverlay(
 
   if (input.kind === 'select') {
     const select = document.createElement('select');
+    select.dataset.previewInputLocator = `${node.id}:input:${input.key}`;
     select.required = input.required ?? false;
     select.value = formatInputValue(input.value);
     applyStyle(select, { ...style, padding: '0 4px' });
@@ -159,6 +161,7 @@ function applyInputOverlay(
   const control = input.kind === 'multiline'
     ? document.createElement('textarea')
     : document.createElement('input');
+  control.dataset.previewInputLocator = `${node.id}:input:${input.key}`;
   if (control.tagName === 'TEXTAREA') {
     const textarea = control as HTMLTextAreaElement;
     textarea.rows = 1;
@@ -407,6 +410,7 @@ function renderTable(node: TableNode, options: DomPreviewOptions, zoom: number):
       && cell.columnKey
       && cell.valueType !== 'formula') {
       const input = document.createElement('input');
+      input.dataset.previewInputLocator = `${node.id}:row:${node.rows[cell.rowIndex]?.id ?? cell.rowIndex}:${cell.columnKey}`;
       input.type = cell.valueType === 'number' || cell.valueType === 'currency'
         ? 'number'
         : cell.valueType === 'date' ? 'date' : 'text';
@@ -434,13 +438,13 @@ function renderTable(node: TableNode, options: DomPreviewOptions, zoom: number):
       input.addEventListener('input', () => {
         options.onInputChange?.(
           node.input!.key,
-          updateTableCell(
+          ensureTableRowIds(updateTableCell(
             node.rows,
             cell.rowIndex!,
             cell.columnKey!,
             input.value,
             cell.valueType!,
-          ),
+          )),
         );
       });
       if (cell.rowIndex !== undefined) {
@@ -453,8 +457,89 @@ function renderTable(node: TableNode, options: DomPreviewOptions, zoom: number):
     container.appendChild(cellElement);
   }
 
-  const hasPatternedLine = node.layout.lines.some(line =>
-    (line.border ?? node.style.border).style !== 'solid');
+  if (editable && node.input) {
+    const lastColumnKey = node.columns.at(-1)?.key;
+    const lastColumnCell = node.layout.cells.find(cell =>
+      cell.role === 'header' && cell.columnKey === lastColumnKey);
+    if (lastColumnCell) {
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.dataset.tableRowAction = 'add';
+      add.title = 'Add row';
+      add.setAttribute('aria-label', 'Add row');
+      add.textContent = '+';
+      applyStyle(add, {
+        position: 'absolute',
+        top: `${mmToCssPx(lastColumnCell.box.y, zoom) + 1}px`,
+        right: '2px',
+        width: '16px',
+        height: '16px',
+        padding: '0',
+        border: '0',
+        borderRadius: '3px',
+        background: 'rgba(255, 255, 255, 0.9)',
+        color: '#2563eb',
+        font: 'bold 14px/1 sans-serif',
+        cursor: 'pointer',
+        zIndex: '2',
+      });
+      add.addEventListener('click', () => {
+        options.onInputChange?.(
+          node.input!.key,
+          ensureTableRowIds(appendTableRow(
+            node.rows,
+            node.columns,
+            createTableRowId(node.rows),
+          )),
+        );
+      });
+      container.appendChild(add);
+    }
+
+    for (const rowIndex of new Set(node.layout.cells
+      .filter(cell => cell.role === 'body' && cell.rowIndex !== undefined)
+      .map(cell => cell.rowIndex!))) {
+      const rowCell = node.layout.cells.find(cell =>
+        cell.role === 'body'
+        && cell.rowIndex === rowIndex
+        && cell.columnKey === lastColumnKey);
+      if (!rowCell) continue;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.dataset.tableRowAction = 'remove';
+      remove.dataset.tableRowIndex = String(rowIndex);
+      remove.title = 'Delete row';
+      remove.setAttribute('aria-label', `Delete row ${rowIndex + 1}`);
+      remove.textContent = '×';
+      applyStyle(remove, {
+        position: 'absolute',
+        top: `${mmToCssPx(rowCell.box.y + rowCell.box.height / 2, zoom) - 8}px`,
+        right: '2px',
+        width: '16px',
+        height: '16px',
+        padding: '0',
+        border: '0',
+        borderRadius: '3px',
+        background: 'rgba(255, 255, 255, 0.9)',
+        color: '#dc2626',
+        font: 'bold 14px/1 sans-serif',
+        cursor: 'pointer',
+        zIndex: '2',
+      });
+      remove.addEventListener('click', () => {
+        options.onInputChange?.(
+          node.input!.key,
+          ensureTableRowIds(removeTableRow(node.rows, rowIndex)),
+        );
+      });
+      container.appendChild(remove);
+    }
+  }
+
+  const hasPatternedLine = node.layout.lines.some(line => {
+    const border = line.border ?? node.style.border;
+    return border.width > 0 && border.style !== 'solid';
+  });
   const svg = createSvg(
     mmToCssPx(node.box.width, zoom),
     mmToCssPx(node.layout.height, zoom),
@@ -462,6 +547,7 @@ function renderTable(node: TableNode, options: DomPreviewOptions, zoom: number):
   );
   for (const line of node.layout.lines) {
     const border = line.border ?? node.style.border;
+    if (!(border.width > 0)) continue;
     const width = ptToCssPx(border.width, zoom);
     svgLine(
       svg,
@@ -619,6 +705,16 @@ function renderNodeContent(
   }
 }
 
+function nodeSignature(node: RenderNode): string {
+  return JSON.stringify(node);
+}
+
+function nodeElement(node: RenderNode, options: DomPreviewOptions, zoom: number): HTMLElement {
+  const wrapper = renderNode(node, options, zoom);
+  wrapper.dataset.nodeSignature = nodeSignature(node);
+  return wrapper;
+}
+
 function renderNode(node: RenderNode, options: DomPreviewOptions, zoom: number): HTMLElement {
   const wrapper = document.createElement('div');
   setData(wrapper, {
@@ -673,14 +769,51 @@ function renderPage(page: RenderPage, options: DomPreviewOptions, zoom: number):
   }
 
   for (const node of page.nodes) {
-    element.appendChild(renderNode(node, options, zoom));
+    element.appendChild(nodeElement(node, options, zoom));
   }
+  return element;
+}
+
+function pageSignature(page: RenderPage): string {
+  return JSON.stringify({
+    id: page.id,
+    sourcePageId: page.sourcePageId,
+    continuationIndex: page.continuationIndex,
+    size: page.size,
+    padding: page.padding,
+    background: page.background,
+  });
+}
+
+function reconcilePage(
+  element: HTMLElement,
+  page: RenderPage,
+  options: DomPreviewOptions,
+  zoom: number,
+  signature: string,
+): HTMLElement {
+  if (element.dataset.pageSignature !== signature) {
+    const fresh = renderPage(page, options, zoom);
+    fresh.dataset.pageSignature = signature;
+    return fresh;
+  }
+  const existing = new Map<string, HTMLElement>();
+  for (const child of Array.from(element.children)) {
+    const candidate = child as HTMLElement;
+    if (candidate.dataset.renderNodeId) existing.set(candidate.dataset.renderNodeId, candidate);
+  }
+  const nextNodes = page.nodes.map(node => {
+    const current = existing.get(node.id);
+    if (current && current.dataset.nodeSignature === nodeSignature(node)) return current;
+    return nodeElement(node, options, zoom);
+  });
+  for (const node of existing.values()) node.remove();
+  element.append(...nextNodes);
   return element;
 }
 
 function renderInto(root: HTMLElement, documentModel: RenderDocument, options: DomPreviewOptions): void {
   const zoom = options.zoom ?? 1;
-  root.replaceChildren();
   root.className = options.className ?? '';
   applyStyle(root, {
     display: 'flex',
@@ -689,8 +822,57 @@ function renderInto(root: HTMLElement, documentModel: RenderDocument, options: D
     gap: `${options.pageGapPx ?? 24}px`,
   });
   setData(root, { renderDocumentId: documentModel.templateId });
-  for (const page of documentModel.pages) {
-    root.appendChild(renderPage(page, options, zoom));
+  const existingPages = new Map<string, HTMLElement>();
+  for (const child of Array.from(root.children)) {
+    const candidate = child as HTMLElement;
+    if (candidate.dataset.renderPageId) existingPages.set(candidate.dataset.renderPageId, candidate);
+  }
+  const nextPages = documentModel.pages.map(page => {
+    const signature = pageSignature(page);
+    const current = existingPages.get(page.id);
+    if (current) return reconcilePage(current, page, options, zoom, signature);
+    const fresh = renderPage(page, options, zoom);
+    fresh.dataset.pageSignature = signature;
+    return fresh;
+  });
+  root.replaceChildren(...nextPages);
+}
+
+interface FocusSnapshot {
+  locator: string;
+  start: number | null;
+  end: number | null;
+}
+
+function captureInputFocus(root: HTMLElement): FocusSnapshot | null {
+  const active = document.activeElement as (HTMLInputElement | HTMLTextAreaElement | null);
+  if (!active || !root.contains(active)) return null;
+  const locator = active.dataset.previewInputLocator;
+  if (!locator) return null;
+  let start: number | null = null;
+  let end: number | null = null;
+  try {
+    start = active.selectionStart;
+    end = active.selectionEnd;
+  } catch {
+    start = null;
+    end = null;
+  }
+  return { locator, start, end };
+}
+
+function restoreInputFocus(root: HTMLElement, snapshot: FocusSnapshot | null): void {
+  if (!snapshot) return;
+  const target = Array.from(root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+    '[data-preview-input-locator]',
+  )).find(candidate => candidate.dataset.previewInputLocator === snapshot.locator);
+  if (!target) return;
+  target.focus();
+  if (snapshot.start === null || snapshot.end === null) return;
+  try {
+    target.setSelectionRange(snapshot.start, snapshot.end);
+  } catch {
+    // Inputs such as type="number" do not expose a text selection range.
   }
 }
 
@@ -715,7 +897,9 @@ export function createDomPreview(
     element: root,
     update(nextDocument: RenderDocument) {
       currentDocument = nextDocument;
+      const focus = captureInputFocus(root);
       renderInto(root, currentDocument, currentOptions);
+      restoreInputFocus(root, focus);
     },
     destroy() {
       root.remove();

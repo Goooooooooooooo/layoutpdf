@@ -25,6 +25,7 @@ interface GoldenSummary {
 
 const fixtureUrl = new URL('./__golden__/invoice.json', import.meta.url);
 const tableFixtureUrl = new URL('./__golden__/table-footer-decimals.json', import.meta.url);
+const baselineFixtureUrl = new URL('./__golden__/text-baseline.json', import.meta.url);
 
 function round(value: number): number {
   return Math.round(value * 100) / 100;
@@ -102,6 +103,41 @@ async function buildGoldenPdf(): Promise<Uint8Array> {
     .generatePdf({ subsetter: true });
 }
 
+async function buildBaselineGoldenPdf(): Promise<Uint8Array> {
+  const engine = await createNodeEngine();
+  const template = engine
+    .createTemplate({ name: 'Golden text baselines' })
+    .addElement('text', {
+      id: 'line_height_1',
+      x: 20,
+      y: 20,
+      box: { width: 100, height: 10 },
+      value: 'Line height 1.0',
+      props: { fontSize: 12, lineHeight: 1 },
+    })
+    .addElement('text', {
+      id: 'line_height_1_5',
+      x: 20,
+      y: 40,
+      box: { width: 100, height: 14 },
+      value: 'Line height 1.5',
+      props: { fontSize: 12, lineHeight: 1.5 },
+    })
+    .addElement('text', {
+      id: 'line_height_3',
+      x: 20,
+      y: 70,
+      box: { width: 100, height: 24 },
+      value: 'Line height 3.0',
+      props: { fontSize: 12, lineHeight: 3 },
+    })
+    .build();
+
+  return engine
+    .createDocument(template, {})
+    .generatePdf({ subsetter: true });
+}
+
 async function buildTableFooterGoldenPdf(): Promise<Uint8Array> {
   const engine = await createNodeEngine();
   const template = engine
@@ -169,5 +205,15 @@ describe('golden PDF', () => {
     assert.deepEqual(summary, expected);
     const texts = summary.pages.flatMap(page => page.text.map(item => item.text));
     assert.ok(texts.includes('1,234.57'), `expected rounded footer value, got ${texts.join(' | ')}`);
+  });
+
+  it('keeps baselines stable across 1.0, 1.5, and 3.0 line heights', async () => {
+    const bytes = await buildBaselineGoldenPdf();
+    const summary = await summarize(bytes);
+    if (process.env.UPDATE_GOLDEN === '1') {
+      await writeFile(baselineFixtureUrl, `${JSON.stringify(summary, null, 2)}\n`);
+    }
+    const expected = JSON.parse(await readFile(baselineFixtureUrl, 'utf8')) as GoldenSummary;
+    assert.deepEqual(summary, expected);
   });
 });

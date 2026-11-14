@@ -131,6 +131,8 @@ export const TablePaginationSchema = z.object({
     .default(() => [...TABLE_PAGINATION_DEFAULTS.finalElementIds]),
   repeatElementIds: z.array(z.string().trim().min(1)).max(TABLE_PAGINATION_LIMITS.maxElementReferences)
     .default(() => [...TABLE_PAGINATION_DEFAULTS.repeatElementIds]),
+  ignoreElementIds: z.array(z.string().trim().min(1)).max(TABLE_PAGINATION_LIMITS.maxElementReferences)
+    .default(() => [...TABLE_PAGINATION_DEFAULTS.ignoreElementIds]),
   rowMode: z.enum(['compact', 'preserve']).default(TABLE_PAGINATION_DEFAULTS.rowMode),
   minRowsOnLastPage: z.number().int()
     .min(TABLE_PAGINATION_LIMITS.minRowsOnLastPage.min)
