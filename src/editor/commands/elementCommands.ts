@@ -25,6 +25,7 @@ interface BuildElementCommandsOptions {
   hasClipboard?: boolean;
   onCopy?(ids: string[]): void;
   onPaste?(): void;
+  onDelete?(ids: string[]): void;
 }
 
 /**
@@ -40,6 +41,7 @@ export function buildElementCommandDescriptors({
   hasClipboard = false,
   onCopy,
   onPaste,
+  onDelete,
 }: BuildElementCommandsOptions): Record<ElementCommandId, ContextMenuItem> {
   const pageIds = new Set(page?.elements.map(element => element.id) ?? []);
   const currentIds = [...new Set(selectedIds)].filter(id => pageIds.has(id));
@@ -91,7 +93,10 @@ export function buildElementCommandDescriptors({
       shortcut: '⌫',
       danger: true,
       disabled: unlockedIds.length === 0,
-      onClick: () => dispatch({ type: 'element/delete', ids: effectiveIds }),
+      onClick: () => {
+        if (onDelete) onDelete(effectiveIds);
+        else dispatch({ type: 'element/delete', ids: effectiveIds });
+      },
     },
     group: {
       id: 'group',

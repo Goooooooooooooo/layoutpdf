@@ -8,6 +8,7 @@ import DesignerChrome from '@/editor/components/DesignerChrome.js';
 import RenderDocumentView from '@/editor/components/RenderDocumentView.js';
 import TemplatePdfBackground from '@/editor/components/TemplatePdfBackground.js';
 import useZoomController from '@/editor/hooks/useZoomController.js';
+import { useDeleteElements } from '@/editor/hooks/useDeleteElements.js';
 import FloatingToolbar from '@/editor/components/FloatingToolbar.js';
 import { useSettings } from '@/settings/settingsContext.js';
 import { useGridEditorController } from '@/editor/components/propertyPanel/grid/gridEditorContext.js';
@@ -34,6 +35,7 @@ export default function DocumentCanvas({
   onPaste,
 }: DocumentCanvasProps) {
   const gridEditor = useGridEditorController();
+  const deleteElements = useDeleteElements(state.templateFile.template, dispatch);
   const viewportRef = useRef<HTMLDivElement>(null);
   const zoom = useZoomController({ defaultScale: 0.9 });
   const { editor, setEditorPreferences } = useSettings();
@@ -135,7 +137,7 @@ export default function DocumentCanvas({
         case 'delete':
           if (selected.length === 0) return;
           event.preventDefault();
-          dispatch({ type: 'element/delete', ids: selected });
+          deleteElements(selected);
           return;
         case 'copy':
           if (selected.length === 0) return;
@@ -170,6 +172,7 @@ export default function DocumentCanvas({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [
+    deleteElements,
     dispatch,
     hasClipboard,
     mode,

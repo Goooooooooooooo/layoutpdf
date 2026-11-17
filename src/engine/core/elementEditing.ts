@@ -150,6 +150,7 @@ export function removeElementsFromTemplate(
   const requested = new Set(ids);
   if (requested.size === 0) return [];
   const removed: string[] = [];
+  const removedOutputReferences = new Set<string>();
   for (const page of template.pages) {
     const targets = options.expandGroups
       ? new Set(expandElementIdsToGroups(page, [...requested]))
@@ -163,11 +164,19 @@ export function removeElementsFromTemplate(
     );
     if (removedSourceIds.size === 0) continue;
     const removedElements = page.elements.filter(element => removedSourceIds.has(element.id));
-    const removedOutputReferences = new Set(removedElements.flatMap(tableOutputReferences));
+    for (const reference of removedElements.flatMap(tableOutputReferences)) {
+      removedOutputReferences.add(reference);
+    }
     removeSummaryReferences(page, elementId => removedSourceIds.has(elementId));
     removeTablePaginationElementReferences(page, elementId => removedSourceIds.has(elementId));
     page.elements = page.elements.filter(element => !removedSourceIds.has(element.id));
-    if (options.onDanglingOutputReference && removedOutputReferences.size > 0) {
+    normalizeElementGroups(page);
+    removed.push(...removedSourceIds);
+  }
+  if (options.onDanglingOutputReference && removedOutputReferences.size > 0) {
+    // Report against every surviving page: a formula can reference an output
+    // that lived on another page.
+    for (const page of template.pages) {
       for (const element of page.elements) {
         const reported = new Set<string>();
         for (const expression of elementFormulas(element)) {
@@ -185,8 +194,6 @@ export function removeElementsFromTemplate(
         }
       }
     }
-    normalizeElementGroups(page);
-    removed.push(...removedSourceIds);
   }
   return removed;
 }

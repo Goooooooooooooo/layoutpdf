@@ -30,6 +30,9 @@ for the pre-1.0 version policy.
 - `TemplateEditor.removeElements` accepts `onDanglingOutputReference`, so a host
   can report formulas that still point at a deleted table output during the
   edit instead of waiting for render.
+- Deleting elements in the designer warns when a surviving formula still
+  references a table output that was removed. The deletion is not blocked, and
+  undo restores a working reference.
 
 ### Fixed
 
@@ -78,7 +81,8 @@ for the pre-1.0 version policy.
 - Duplicating elements remaps `calc` formulas to the copied table's outputs, so
   a copied calculation reads the copy instead of the original.
 - Removing a table reports the formulas that now point at its deleted outputs,
-  so the editor can surface the problem before render.
+  so the editor can surface the problem before render. The report scans every
+  page, not only the page that owned the deleted element.
 - Grid cells resolve their column key at the first `:`, so a column key that
   contains a colon still lays out correctly.
 

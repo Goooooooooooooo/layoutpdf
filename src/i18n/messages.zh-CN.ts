@@ -724,6 +724,8 @@ export const zhCNMessages = {
   'editor.canvas.exitPreview': '退出预览',
   'editor.canvas.exitPreview.title': '返回模板设计（Esc）',
   'editor.chrome.delete': '删除所选控件',
+  'editor.chrome.danglingOutputsTitle': '删除后仍有公式引用',
+  'editor.chrome.danglingOutputsDetail': '有 {count} 个公式引用已删除表格的输出，预览或导出时会显示缺失值。',
   'editor.chrome.resize': '调整大小',
   'editor.chrome.rotate': '旋转',
   'editor.chrome.copy': '复制',

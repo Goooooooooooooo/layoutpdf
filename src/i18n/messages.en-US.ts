@@ -726,6 +726,8 @@ export const enUSMessages = {
   'editor.canvas.exitPreview': 'Exit preview',
   'editor.canvas.exitPreview.title': 'Return to template design (Esc)',
   'editor.chrome.delete': 'Delete selected elements',
+  'editor.chrome.danglingOutputsTitle': 'Some formulas still reference deleted elements',
+  'editor.chrome.danglingOutputsDetail': '{count} formula references point at outputs of a deleted table and will show as missing in preview and export.',
   'editor.chrome.resize': 'Resize',
   'editor.chrome.rotate': 'Rotate',
   'editor.chrome.copy': 'Copy',

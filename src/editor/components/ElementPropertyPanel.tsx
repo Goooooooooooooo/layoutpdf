@@ -31,6 +31,7 @@ import GeometryBar from '@/editor/components/propertyPanel/GeometryBar.js';
 import InspectorColorField from '@/editor/components/propertyPanel/InspectorColorField.js';
 import { ComplexPropertyEditor } from '@/editor/components/propertyPanel/propertyEditorRegistry.js';
 import { useDesignerPropertyEditor } from '@/editor/components/propertyPanel/propertyEditorContext.js';
+import { useDeleteElements } from '@/editor/hooks/useDeleteElements.js';
 import { isStandardPropertyDefinition } from '@/editor/components/propertyPanel/propertyEditorRouting.js';
 import IconButton from '@/ui/button/IconButton.js';
 import Icon, { type IconName } from '@/ui/icon/Icon.js';
@@ -75,6 +76,7 @@ const ALIGNMENT_ICONS: Record<Alignment, IconName> = {
 
 export default function ElementPropertyPanel({ state, dispatch, plugins = defaultPluginRegistry, width, onWidthChange, onCollapse }: ElementPropertyPanelProps) {
   const ids = state.selectedElementIds;
+  const deleteElements = useDeleteElements(state.templateFile.template, dispatch);
   const allElements = useMemo(
     () => state.templateFile.template.pages.flatMap(page => page.elements),
     [state.templateFile.template.pages],
@@ -317,6 +319,7 @@ export default function ElementPropertyPanel({ state, dispatch, plugins = defaul
     page: selectedPage,
     selectedIds: ids,
     dispatch,
+    onDelete: deleteElements,
   }), [
     'duplicate',
     'group',
