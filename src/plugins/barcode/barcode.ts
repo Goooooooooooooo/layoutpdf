@@ -68,6 +68,7 @@ function createBarcodeDataUrl(value: string, props: BarcodeProps): string {
 }
 
 export const barcodePlugin: LayoutPDFPlugin<BarcodeProps, string> = {
+  apiVersion: 1,
   metadata: {
     type: 'barcode',
     label: '条形码',

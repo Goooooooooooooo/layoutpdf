@@ -14,6 +14,7 @@ export const TextPropsSchema = TextVisualPropsSchema.extend({
 export type TextProps = z.infer<typeof TextPropsSchema>;
 
 export const textPlugin: LayoutPDFPlugin<TextProps, string> = {
+  apiVersion: 1,
   metadata: {
     type: 'text',
     label: '文字',

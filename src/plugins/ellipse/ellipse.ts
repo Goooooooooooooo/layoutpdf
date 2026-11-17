@@ -10,6 +10,7 @@ export const EllipsePropsSchema = z.object({
 export type EllipseProps = z.infer<typeof EllipsePropsSchema>;
 
 export const ellipsePlugin: LayoutPDFPlugin<EllipseProps, null> = {
+  apiVersion: 1,
   metadata: { type: 'ellipse', label: '椭圆', labelKey: 'plugin.ellipse.label', category: 'layout' },
   propsSchema: EllipsePropsSchema,
   valueSchema: z.null(),

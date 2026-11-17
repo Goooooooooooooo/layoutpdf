@@ -15,6 +15,7 @@ export type ImageProps = z.infer<typeof ImagePropsSchema>;
 export type ImageValue = z.infer<typeof ImageValueSchema>;
 
 export const imagePlugin: LayoutPDFPlugin<ImageProps, ImageValue> = {
+  apiVersion: 1,
   metadata: { type: 'image', label: '图片', labelKey: 'plugin.image.label', category: 'basic' },
   propsSchema: ImagePropsSchema,
   valueSchema: ImageValueSchema,

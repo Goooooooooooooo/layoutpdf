@@ -41,6 +41,7 @@ function createQrDataUrl(
 }
 
 export const qrcodePlugin: LayoutPDFPlugin<QrCodeProps, string> = {
+  apiVersion: 1,
   metadata: {
     type: 'qrcode',
     label: '二维码',

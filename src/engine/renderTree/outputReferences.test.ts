@@ -195,6 +195,7 @@ describe('element output references', () => {
       layout: { lines: [], lineHeightMm: 0, overflow: false },
     };
     const document: RenderDocument = {
+      version: 1,
       templateId: 'tpl_1',
       format: defaultFormatSettingsForLocale('en-US'),
       pages: [{

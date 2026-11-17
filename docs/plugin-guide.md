@@ -4,11 +4,15 @@
 
 ## 1. 插件的最小结构
 
+`apiVersion` 可选，声明插件编写时面向的插件 API 版本。当前版本为 `1`；
+`createPluginRegistry` 会拒绝不匹配的插件并抛出 `PLUGIN_API_VERSION_UNSUPPORTED`。
+
 ```ts
 import { z } from 'zod';
 import { definePlugin } from 'layoutpdf/core';
 
 export const stampPlugin = definePlugin({
+  apiVersion: 1,
   metadata: {
     type: 'stamp',
     label: '印章',

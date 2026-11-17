@@ -436,6 +436,7 @@ function cloneColumn(column: TableColumn): TableColumn {
 }
 
 export const tablePlugin: LayoutPDFPlugin<TableProps, TableValueRow[]> = {
+  apiVersion: 1,
   metadata: {
     type: 'table',
     label: '表格',

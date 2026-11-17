@@ -48,6 +48,7 @@ function markerNode(args: {
 }
 
 export const radioGroupPlugin: LayoutPDFPlugin<RadioGroupProps, string> = {
+  apiVersion: 1,
   metadata: {
     type: 'radiogroup',
     label: '单选组',

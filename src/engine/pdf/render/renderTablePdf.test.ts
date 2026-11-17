@@ -132,6 +132,7 @@ describe('renderTablePdf', () => {
     try {
       await renderDocumentPdf({
         document: {
+          version: 1,
           templateId: 'tpl_1',
           format: enFormat,
           issues: [],
@@ -207,6 +208,7 @@ describe('renderTablePdf', () => {
     try {
       await renderDocumentPdf({
         document: {
+          version: 1,
           templateId: 'tpl_1',
           format: enFormat,
           issues: [],
@@ -250,6 +252,7 @@ describe('renderTablePdf', () => {
     try {
       const bytes = await renderDocumentPdf({
         document: {
+          version: 1,
           templateId: 'tpl_1',
           format: enFormat,
           issues: [],
@@ -318,6 +321,7 @@ describe('renderTablePdf', () => {
     assert.ok((computed.formulaErrors ?? []).length > 0);
 
     const document: RenderDocument = {
+      version: 1,
       templateId: 'tpl_1',
       format: enFormat,
       issues: [

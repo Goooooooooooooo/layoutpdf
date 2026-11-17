@@ -19,6 +19,7 @@ export const NumberValueSchema = z.union([z.number(), z.string()]);
 export type NumberValue = z.infer<typeof NumberValueSchema>;
 
 export const numberPlugin: LayoutPDFPlugin<NumberProps, NumberValue> = {
+  apiVersion: 1,
   metadata: {
     type: 'number',
     label: '数值',

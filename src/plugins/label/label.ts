@@ -9,6 +9,7 @@ import {
 } from '@/plugins/textShared.js';
 
 export const labelPlugin: LayoutPDFPlugin<TextVisualProps, string> = {
+  apiVersion: 1,
   metadata: { type: 'label', label: '标签', labelKey: 'plugin.label.label', category: 'basic' },
   propsSchema: TextVisualPropsSchema,
   valueSchema: z.string(),

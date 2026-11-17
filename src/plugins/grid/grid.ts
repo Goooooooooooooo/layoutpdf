@@ -191,6 +191,7 @@ function createDefaultCells(columns: number, rows: number): Record<string, GridC
 }
 
 export const gridPlugin: LayoutPDFPlugin<GridProps, string> = {
+  apiVersion: 1,
   metadata: {
     type: 'grid',
     label: '自由网格',

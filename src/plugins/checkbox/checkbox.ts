@@ -20,6 +20,7 @@ const MARKS: Record<CheckboxProps['mark'], string> = {
 };
 
 export const checkboxPlugin: LayoutPDFPlugin<CheckboxProps, boolean> = {
+  apiVersion: 1,
   metadata: {
     type: 'checkbox',
     label: '复选框',

@@ -55,6 +55,7 @@ function formulaReference(expression: string): TextNode {
 
 function document(): RenderDocument {
   return {
+    version: 1,
     templateId: 'template', format: defaultFormatSettingsForLocale('ja-JP'), issues: [],
     pages: [{
       id: 'page', sourcePageId: 'page', continuationIndex: 0,

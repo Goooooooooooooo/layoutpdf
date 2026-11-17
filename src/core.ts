@@ -9,6 +9,7 @@ export * from './engine/core/plugin.js';
 export * from './engine/core/pluginRegistry.js';
 export * from './engine/core/pluginRendererRegistry.js';
 export * from './engine/core/validation.js';
+export * from './engine/core/templateMigration.js';
 export * from './engine/renderTree/model.js';
 export * from './engine/renderTree/resolve.js';
 export * from './engine/renderTree/layout.js';

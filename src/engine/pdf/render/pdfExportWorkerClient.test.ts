@@ -47,6 +47,7 @@ class FakeWorker {
 }
 
 const document: RenderDocument = {
+  version: 1,
   templateId: 'template',
   format: {
     locale: 'en-US',

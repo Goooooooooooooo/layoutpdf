@@ -11,6 +11,9 @@ import type { InputRecord } from '@/engine/core/input.js';
 import type { PluginNode, RenderNode } from '@/engine/renderTree/model.js';
 import type { FormatLocaleSettings } from '@/i18n/locales.js';
 
+/** Contract version a plugin was written against. Bumped only on a breaking plugin API change. */
+export const SUPPORTED_PLUGIN_API_VERSION = 1;
+
 export interface PluginMetadata {
   type: string;
   label: string;
@@ -79,6 +82,11 @@ export interface LayoutPDFPlugin<
   TProps extends object = JsonObject,
   TValue extends JsonValue = JsonValue,
 > {
+  /**
+   * Plugin API version. Optional so existing third-party plugins keep compiling;
+   * declare it when publishing so the registry can reject incompatible builds.
+   */
+  apiVersion?: number;
   metadata: PluginMetadata;
   propsSchema: ZodType<TProps>;
   valueSchema: ZodType<TValue>;

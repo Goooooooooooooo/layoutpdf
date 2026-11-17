@@ -617,6 +617,7 @@ export function paginateTables(document: RenderDocument): RenderDocument {
     issues.push(...result.issues);
   }
   return {
+    version: document.version,
     templateId: document.templateId,
     format: document.format,
     pages,

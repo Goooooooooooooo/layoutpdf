@@ -33,6 +33,19 @@ for the pre-1.0 version policy.
 - Deleting elements in the designer warns when a surviving formula still
   references a table output that was removed. The deletion is not blocked, and
   undo restores a working reference.
+- `migrateTemplate(json)` upgrades a serialized template to the current format.
+  It runs a pure per-version migration chain, stamps each version, validates the
+  result, and rejects a newer file with `TEMPLATE_VERSION_UNSUPPORTED` instead of
+  silently dropping data. `CURRENT_TEMPLATE_VERSION` and `TEMPLATE_FORMAT` are
+  exported for hosts that branch on the version.
+- Plugins can declare `apiVersion`. Bundled plugins declare `1`, and
+  `createPluginRegistry` rejects an incompatible plugin with
+  `PLUGIN_API_VERSION_UNSUPPORTED`. The field stays optional so existing
+  third-party plugins keep compiling; `SUPPORTED_PLUGIN_API_VERSION` exposes the
+  current contract version.
+- `RenderDocument.version` identifies the node-shape contract and is emitted as
+  `RENDER_DOCUMENT_VERSION` (`1`). `resolveRenderTree`, `layoutRenderTree`, and
+  pagination preserve it, so workers and hosts can detect a mismatched IR.
 
 ### Fixed
 

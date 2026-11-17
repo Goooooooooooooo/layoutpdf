@@ -10,6 +10,7 @@ export const RectPropsSchema = z.object({
 export type RectProps = z.infer<typeof RectPropsSchema>;
 
 export const rectPlugin: LayoutPDFPlugin<RectProps, null> = {
+  apiVersion: 1,
   metadata: { type: 'rect', label: '矩形', labelKey: 'plugin.rect.label', category: 'layout' },
   propsSchema: RectPropsSchema,
   valueSchema: z.null(),
