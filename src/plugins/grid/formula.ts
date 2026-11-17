@@ -172,6 +172,32 @@ export function getFormulaReferences(
   return [...references];
 }
 
+function survivingRangeCoordinates(
+  start: GridFormulaCoordinate,
+  end: GridFormulaCoordinate,
+  transform: (coordinate: GridFormulaCoordinate) => GridFormulaCoordinate | undefined,
+): GridFormulaCoordinate[] | undefined {
+  const rowStart = Math.min(start.rowIndex, end.rowIndex);
+  const rowEnd = Math.max(start.rowIndex, end.rowIndex);
+  const columnStart = Math.min(start.columnIndex, end.columnIndex);
+  const columnEnd = Math.max(start.columnIndex, end.columnIndex);
+  const width = columnEnd - columnStart + 1;
+  const height = rowEnd - rowStart + 1;
+  if (width * height > TEMPLATE_COMPLEXITY_LIMITS.maxGridCellsPerElement) {
+    // Keep the old endpoint behaviour for pathologically large ranges instead
+    // of scanning an unbounded rectangle during an edit.
+    return undefined;
+  }
+  const survivors: GridFormulaCoordinate[] = [];
+  for (let rowIndex = rowStart; rowIndex <= rowEnd; rowIndex++) {
+    for (let columnIndex = columnStart; columnIndex <= columnEnd; columnIndex++) {
+      const next = transform({ rowIndex, columnIndex });
+      if (next) survivors.push(next);
+    }
+  }
+  return survivors;
+}
+
 export function rewriteGridFormulaReferences(
   formula: string,
   transform: (coordinate: GridFormulaCoordinate) => GridFormulaCoordinate | undefined,
@@ -199,6 +225,23 @@ export function rewriteGridFormulaReferences(
           rowIndex: Math.max(nextStart.rowIndex, nextEnd.rowIndex),
           columnIndex: Math.max(nextStart.columnIndex, nextEnd.columnIndex),
         })}`;
+      } else if (start && end && (!nextStart || !nextEnd)) {
+        // A deleted endpoint shrinks the range, matching a spreadsheet: the
+        // surviving cells stay referenced and only an empty range becomes #REF!.
+        const survivors = survivingRangeCoordinates(start, end, transform);
+        if (survivors && survivors.length > 0) {
+          rewritten = `${formatCoordinate({
+            rowIndex: Math.min(...survivors.map(cell => cell.rowIndex)),
+            columnIndex: Math.min(...survivors.map(cell => cell.columnIndex)),
+          })}:${formatCoordinate({
+            rowIndex: Math.max(...survivors.map(cell => cell.rowIndex)),
+            columnIndex: Math.max(...survivors.map(cell => cell.columnIndex)),
+          })}`;
+        } else if (survivors) {
+          rewritten = '#REF!';
+        } else {
+          rewritten = `${formatCoordinate(nextStart)}:${formatCoordinate(nextEnd)}`;
+        }
       } else {
         rewritten = `${formatCoordinate(nextStart)}:${formatCoordinate(nextEnd)}`;
       }

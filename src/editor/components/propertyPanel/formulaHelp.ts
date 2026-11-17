@@ -61,6 +61,7 @@ export type FormulaHelpKey =
   | 'floor'
   | 'ceil'
   | 'percent'
+  | 'mod'
   | 'abs'
   | 'if'
   | 'rowNumber'
@@ -90,6 +91,7 @@ export const FORMULA_FUNCTION_HELP: Record<string, FormulaFunctionHelp> = {
   FLOOR: { category: 'rounding', signature: 'FLOOR(value, decimalPlaces)', descriptionKey: 'floor' },
   CEIL: { category: 'rounding', signature: 'CEIL(value, decimalPlaces)', descriptionKey: 'ceil' },
   PERCENT: { category: 'logic', signature: 'PERCENT(percentNumber)', descriptionKey: 'percent' },
+  MOD: { category: 'logic', signature: 'MOD(dividend, divisor)', descriptionKey: 'mod' },
   ABS: { category: 'logic', signature: 'ABS(value)', descriptionKey: 'abs' },
   IF: { category: 'logic', signature: 'IF(condition, trueValue, falseValue)', descriptionKey: 'if' },
   ROW_NUMBER: { category: 'table', signature: 'ROW_NUMBER()', descriptionKey: 'rowNumber' },
@@ -151,6 +153,7 @@ const zhCN: Record<FormulaHelpKey, string> = {
   floor: '始终向负无穷方向取整。负数结果与 ROUNDDOWN 不同。',
   ceil: '始终向正无穷方向取整。负数结果与 ROUNDUP 不同。',
   percent: '把百分数转换为计算比例。PERCENT(10) 等于 0.1。',
+  mod: '返回除法余数，结果符号跟随除数（与电子表格一致）。MOD(-7, 3) 等于 2。',
   abs: '去掉正负号并返回绝对值。用于差额大小或距离计算。',
   if: '根据条件选择两个结果之一。用于达标折扣、最低收费等规则。',
   rowNumber: '返回当前明细行序号，从 1 开始。仅用于表格计算列。',
@@ -211,6 +214,7 @@ const enUS: Record<FormulaHelpKey, string> = {
   floor: 'Always rounds toward negative infinity. Negative results differ from ROUNDDOWN.',
   ceil: 'Always rounds toward positive infinity. Negative results differ from ROUNDUP.',
   percent: 'Converts a percent number to a calculation rate. PERCENT(10) equals 0.1.',
+  mod: 'Returns the division remainder with the divisor’s sign, like a spreadsheet. MOD(-7, 3) equals 2.',
   abs: 'Removes the sign and returns an absolute value. Use it for difference size or distance.',
   if: 'Chooses one of two results from a condition. Use it for discounts or minimum charges.',
   rowNumber: 'Returns the current line-item number starting at 1. Available only in table formula columns.',
@@ -271,6 +275,7 @@ const jaJP: Record<FormulaHelpKey, string> = {
   floor: '常に負の無限大方向へ丸めます。負数の結果は ROUNDDOWN と異なります。',
   ceil: '常に正の無限大方向へ丸めます。負数の結果は ROUNDUP と異なります。',
   percent: 'パーセント数を計算用の割合に変換します。PERCENT(10) は 0.1 です。',
+  mod: '除算の余りを返します。結果の符号は除数に従います（表計算と同じ）。MOD(-7, 3) は 2 です。',
   abs: '符号を除いて絶対値を返します。差額の大きさや距離の計算に使用します。',
   if: '条件によって2つの結果から選択します。割引や最低料金の規則に使用します。',
   rowNumber: '1 から始まる現在の明細行番号を返します。テーブル計算列でのみ使用できます。',

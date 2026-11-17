@@ -6,10 +6,12 @@ import type {
   TemplatePage,
 } from '@/engine/core/document.js';
 import {
+  remapFormulaOutputReferences,
   remapGridIdentities,
   remapTableIdentities,
 } from '@/engine/core/cloneTemplateFile.js';
 import { remapElementOutputReferences } from '@/engine/core/elementOutputReferences.js';
+import { createFormulaOutputReference, getFormulaReferences } from '@/utils/calc.js';
 import {
   expandElementIdsToGroups,
   normalizeElementGroups,
@@ -72,7 +74,24 @@ export function duplicateElementsInPage(
   remapElementGroupIds(additions, idGenerator);
   remapTablePaginationElementReferences(additions, elementIds, { dropUnmapped: true });
   remapElementOutputReferences(additions, { elementIds, outputIdsBySource });
+  const formulaOutputReferences = new Map<string, string>();
+  for (const [oldElementId, outputIds] of outputIdsBySource) {
+    const nextElementId = elementIds.get(oldElementId);
+    if (!nextElementId) continue;
+    for (const [oldOutputId, nextOutputId] of outputIds) {
+      formulaOutputReferences.set(
+        createFormulaOutputReference(oldElementId, oldOutputId),
+        createFormulaOutputReference(nextElementId, nextOutputId),
+      );
+    }
+  }
+  remapFormulaOutputReferences(additions, formulaOutputReferences);
   return additions;
+}
+
+export interface DanglingOutputReference {
+  elementId: string;
+  reference: string;
 }
 
 export interface RemoveElementsOptions {
@@ -80,6 +99,41 @@ export interface RemoveElementsOptions {
   expandGroups?: boolean;
   /** Also delete locked elements. Defaults to `false`. */
   includeLocked?: boolean;
+  /**
+   * Called for each formula reference that still points at an output owned by a
+   * deleted element. The reference is left in place so the edit can be undone;
+   * hosts can surface the report immediately instead of waiting for render.
+   */
+  onDanglingOutputReference?: (reference: DanglingOutputReference) => void;
+}
+
+function tableOutputReferences(element: TemplateElement<object>): string[] {
+  if (element.type !== 'table') return [];
+  const props = element.props as { footers?: Array<{ id?: unknown }> };
+  const footers = Array.isArray(props.footers) ? props.footers : [];
+  return footers.flatMap(footer =>
+    typeof footer?.id === 'string'
+      ? [createFormulaOutputReference(element.id, footer.id)]
+      : []
+  );
+}
+
+function elementFormulas(element: TemplateElement<object>): string[] {
+  if (element.type === 'calc' && typeof element.value === 'string') {
+    return [element.value];
+  }
+  if (element.type !== 'table') return [];
+  const props = element.props as {
+    columns?: Array<{ formula?: { expression?: unknown } }>;
+    footers?: Array<{ formula?: { expression?: unknown } }>;
+  };
+  const entries = [
+    ...(Array.isArray(props.columns) ? props.columns : []),
+    ...(Array.isArray(props.footers) ? props.footers : []),
+  ];
+  return entries.flatMap(entry =>
+    typeof entry?.formula?.expression === 'string' ? [entry.formula.expression] : []
+  );
 }
 
 /**
@@ -108,9 +162,29 @@ export function removeElementsFromTemplate(
         .map(element => element.id),
     );
     if (removedSourceIds.size === 0) continue;
+    const removedElements = page.elements.filter(element => removedSourceIds.has(element.id));
+    const removedOutputReferences = new Set(removedElements.flatMap(tableOutputReferences));
     removeSummaryReferences(page, elementId => removedSourceIds.has(elementId));
     removeTablePaginationElementReferences(page, elementId => removedSourceIds.has(elementId));
     page.elements = page.elements.filter(element => !removedSourceIds.has(element.id));
+    if (options.onDanglingOutputReference && removedOutputReferences.size > 0) {
+      for (const element of page.elements) {
+        const reported = new Set<string>();
+        for (const expression of elementFormulas(element)) {
+          let references: string[];
+          try {
+            references = getFormulaReferences(expression);
+          } catch {
+            continue;
+          }
+          for (const reference of references) {
+            if (!removedOutputReferences.has(reference) || reported.has(reference)) continue;
+            reported.add(reference);
+            options.onDanglingOutputReference({ elementId: element.id, reference });
+          }
+        }
+      }
+    }
     normalizeElementGroups(page);
     removed.push(...removedSourceIds);
   }

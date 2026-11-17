@@ -272,8 +272,30 @@ describe('grid formula evaluator', () => {
 
   it('rebases references safely when rows or columns are deleted', () => {
     assert.equal(rebaseFormulaAfterRowDeletion('=A1+B3', 1), '=A1+B2');
-    assert.equal(rebaseFormulaAfterRowDeletion('=SUM(A1:A3)', 0), '=SUM(#REF!:A2)');
+    assert.equal(rebaseFormulaAfterRowDeletion('=A1+B3', 0), '=#REF!+B2');
     assert.equal(rebaseFormulaAfterColumnDeletion('=A1+B2', 'a'), '=#REF!+A2');
+  });
+
+  it('shrinks a range instead of breaking it when a row inside it is deleted', () => {
+    assert.equal(rebaseFormulaAfterRowDeletion('=SUM(A1:A3)', 0), '=SUM(A1:A2)');
+    assert.equal(rebaseFormulaAfterRowDeletion('=SUM(A1:A3)', 1), '=SUM(A1:A2)');
+    assert.equal(rebaseFormulaAfterRowDeletion('=SUM(A1:A3)', 2), '=SUM(A1:A2)');
+    assert.equal(rebaseFormulaAfterRowDeletion('=SUM(A2:A4)', 1), '=SUM(A2:A3)');
+  });
+
+  it('shrinks a range instead of breaking it when a column inside it is deleted', () => {
+    assert.equal(rebaseFormulaAfterColumnDeletion('=SUM(A1:B2)', 'a'), '=SUM(A1:A2)');
+    assert.equal(rebaseFormulaAfterColumnDeletion('=SUM(A1:C2)', 'b'), '=SUM(A1:B2)');
+  });
+
+  it('keeps #REF only when every cell of the range is gone', () => {
+    assert.equal(rebaseFormulaAfterRowDeletion('=SUM(A1:A1)', 0), '=SUM(#REF!)');
+    assert.equal(rebaseFormulaAfterColumnDeletion('=SUM(A1:A1)', 'a'), '=SUM(#REF!)');
+  });
+
+  it('evaluates MOD with the divisor sign', () => {
+    assert.equal(evaluateGridFormula('=MOD(-7, 3)', {}), 2);
+    assert.equal(evaluateGridFormula('=MOD(7, -3)', {}), -2);
   });
 });
 
@@ -320,6 +342,20 @@ describe('grid presentation layout', () => {
     const result = layoutGridPresentation(baseNode, fontManager);
     assert.equal(result.layout.cells.length, 4);
     assert.equal(result.layout.height, 18);
+  });
+
+  it('keeps a column key that contains a colon', () => {
+    const result = layoutGridPresentation({
+      ...baseNode,
+      columns: [{ id: 'col_item', key: 'item_a:b', width: 1 }],
+      rows: [{ id: 'row_0' }],
+      computedCells: {
+        '0:item_a:b': { content: 'Value', role: 'body' },
+      },
+    }, fontManager);
+
+    assert.equal(result.layout.cells.length, 1);
+    assert.equal(result.layout.cells[0].lines[0].text, 'Value');
   });
 
   it('publishes the resolved real Bold face for bold grid cells', () => {

@@ -42,3 +42,40 @@ describe('floating point formula equality', () => {
     assert.equal(evaluateExpression('IF(0.1 + 0.2 - 0.3 = 0, 1, 0)'), 1);
   });
 });
+
+describe('formula reference names', () => {
+  it('stops a reference name at a subtraction operator', () => {
+    const fields = {
+      resolve(name: string) {
+        return name === 'field.qty' ? 5 : undefined;
+      },
+    };
+    assert.equal(evaluateFormula('field.qty-1', fields), 4);
+    assert.equal(evaluateFormula('field.qty - 1', fields), 4);
+  });
+
+  it('keeps hyphens inside a reference name when the next character starts a word', () => {
+    const fields = {
+      resolve(name: string) {
+        return name === 'field.customer-name' ? 7 : undefined;
+      },
+    };
+    assert.equal(evaluateFormula('field.customer-name', fields), 7);
+  });
+});
+
+describe('MOD', () => {
+  it('uses the divisor sign like a spreadsheet', () => {
+    assert.equal(evaluateExpression('MOD(-7, 3)'), 2);
+    assert.equal(evaluateExpression('MOD(7, -3)'), -2);
+    assert.equal(evaluateExpression('MOD(7, 3)'), 1);
+  });
+
+  it('keeps the remainder operator as the JavaScript remainder', () => {
+    assert.equal(evaluateExpression('-7 % 3'), -1);
+  });
+
+  it('rejects a zero divisor', () => {
+    assert.throws(() => evaluateExpression('MOD(7, 0)'));
+  });
+});

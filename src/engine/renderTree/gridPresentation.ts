@@ -97,7 +97,11 @@ export function layoutGridPresentation(node: GridNode, fontManager: FontManager)
   const layoutLines: GridLayoutLine[] = [];
 
   for (const [key, cell] of Object.entries(node.computedCells)) {
-    const [rawRowIndex, columnKey] = key.split(':');
+    // Column keys can contain colons (for example summary item keys), so split
+    // only at the row-index separator.
+    const separator = key.indexOf(':');
+    const rawRowIndex = separator >= 0 ? key.slice(0, separator) : '';
+    const columnKey = separator >= 0 ? key.slice(separator + 1) : '';
     const rowIndex = Number(rawRowIndex);
     const columnIndex = node.columns.findIndex(column => column.key === columnKey);
     if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= node.rows.length || columnIndex < 0) {
