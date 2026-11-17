@@ -4,6 +4,7 @@ import {
   TemplateFileSchema,
 } from '@/engine/core/validation.js';
 import { assertTemplateJsonSize } from '@/engine/utils/limits.js';
+import { migrateLegacyTablePagination } from '@/engine/core/tablePaginationMigration.js';
 
 export interface StringifyTemplateJsonOptions {
   space?: number;
@@ -25,7 +26,7 @@ export function parseTemplateJson(text: string): TemplateFile {
     );
   }
 
-  const parsed = TemplateFileSchema.parse(value);
+  const parsed = TemplateFileSchema.parse(migrateLegacyTablePagination(value));
   assertValidTemplateFile(parsed);
   return structuredClone(parsed);
 }
@@ -38,7 +39,8 @@ export function stringifyTemplateJson(
   if (!Number.isInteger(space) || space < 0 || space > 10) {
     throw new RangeError('Template JSON indentation must be an integer from 0 to 10.');
   }
-  assertValidTemplateFile(file);
-  const parsed = TemplateFileSchema.parse(file);
+  const normalized = migrateLegacyTablePagination(file);
+  assertValidTemplateFile(normalized);
+  const parsed = TemplateFileSchema.parse(normalized);
   return JSON.stringify(parsed, null, space);
 }

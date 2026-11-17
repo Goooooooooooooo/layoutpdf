@@ -1,6 +1,7 @@
 import type { TemplateFile } from '@/engine/core/document.js';
 import { LayoutPDFRuntimeError } from '@/engine/utils/errors.js';
 import { assertValidTemplateFile } from '@/engine/core/validation.js';
+import { migrateLegacyTablePagination } from '@/engine/core/tablePaginationMigration.js';
 
 /** Template file versions this build can read without migration. */
 export const CURRENT_TEMPLATE_VERSION = 3;
@@ -105,6 +106,7 @@ export function migrateTemplate(
     current = { ...migrated, version: from + 1 };
   }
 
+  current = migrateLegacyTablePagination(current);
   assertValidTemplateFile(current);
   return structuredClone(current);
 }
