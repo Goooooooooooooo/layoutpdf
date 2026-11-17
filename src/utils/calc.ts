@@ -46,6 +46,7 @@ export const DEFAULT_FORMULA_FUNCTIONS = [
   'ROUNDDOWN',
   'FLOOR',
   'CEIL',
+  'MOD',
   'PERCENT',
   'ABS',
   'IF',
@@ -106,7 +107,7 @@ function tokenize(source: string): Token[] {
         if (
           part === '-'
           && identifier.includes('.')
-          && IDENTIFIER_PART.test(source[index + 1] ?? '')
+          && IDENTIFIER_START.test(source[index + 1] ?? '')
         ) {
           identifier += part;
           index += 1;
@@ -363,6 +364,11 @@ export function validateFormula(
       requireScalar(visit(node.args[0]), node.name);
       return 'scalar';
     }
+    if (node.name === 'MOD') {
+      requireArity(node.name, node.args, 2);
+      node.args.forEach(argument => requireScalar(visit(argument), node.name));
+      return 'scalar';
+    }
     if (['ROUND', 'ROUNDUP', 'ROUNDDOWN', 'FLOOR', 'CEIL'].includes(node.name)) {
       requireArity(node.name, node.args, 1, 2);
       requireScalar(visit(node.args[0]), node.name);
@@ -534,6 +540,14 @@ function evaluateBuiltInCall(
   if (node.name === 'ABS') {
     if (values.length !== 1) throw new Error('ABS requires one value.');
     return Math.abs(scalar(values[0], 'ABS'));
+  }
+  if (node.name === 'MOD') {
+    if (values.length !== 2) throw new Error('MOD requires two values.');
+    const dividend = scalar(values[0], 'MOD');
+    const divisor = scalar(values[1], 'MOD');
+    if (divisor === 0) throw new Error('MOD divisor must not be zero.');
+    // Spreadsheet MOD takes the divisor's sign: MOD(-7, 3) is 2.
+    return roundDecimal(dividend - divisor * Math.floor(dividend / divisor), 10);
   }
   if (
     node.name === 'ROUND'

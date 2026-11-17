@@ -18,6 +18,7 @@ import {
   type TemplatePage,
 } from '@/engine/core/document.js';
 import {
+  type DanglingOutputReference,
   duplicateElementsInPage,
   reconcileTableOutputReferences,
   removeElementsFromTemplate,
@@ -102,6 +103,11 @@ export interface EditorRemoveElementsOptions {
   includeLocked?: boolean;
   /** Ignore ids that do not exist instead of throwing. Defaults to `false`. */
   ignoreMissing?: boolean;
+  /**
+   * Called when a remaining formula still references an output owned by a
+   * deleted element. References are left intact so the edit stays undoable.
+   */
+  onDanglingOutputReference?: (reference: DanglingOutputReference) => void;
 }
 
 export interface EditorUpdateElementOptions {
@@ -506,6 +512,7 @@ export class TemplateEditor {
     return removeElementsFromTemplate(this.file.template, unique, {
       expandGroups: options.expandGroups,
       includeLocked: options.includeLocked,
+      onDanglingOutputReference: options.onDanglingOutputReference,
     });
   }
 

@@ -24,6 +24,12 @@ for the pre-1.0 version policy.
   value is ellipsized. It is fatal only in strict mode.
 - `FontManager.getFontMetrics` exposes vertical font metrics so PDF text uses
   the same ascent/descent and half-leading baseline as the DOM preview.
+- Formula functions include `MOD(dividend, divisor)`, which takes the divisor's
+  sign like a spreadsheet (`MOD(-7, 3)` is `2`). The `%` operator keeps the
+  JavaScript remainder, so `-7 % 3` is `-1`.
+- `TemplateEditor.removeElements` accepts `onDanglingOutputReference`, so a host
+  can report formulas that still point at a deleted table output during the
+  edit instead of waiting for render.
 
 ### Fixed
 
@@ -62,6 +68,19 @@ for the pre-1.0 version policy.
   suffix.
 - Number display rounds before deciding whether a value is zero, so small
   negatives no longer print as `-0`.
+- A formula reference name stops at a subtraction operator, so `field.qty-1`
+  is the field minus one instead of a reference named `field.qty-1`. Hyphens
+  inside a name still work when the next character starts a word, as in
+  `field.customer-name`.
+- Deleting a grid row or column shrinks a formula range instead of breaking it:
+  deleting a row from `=SUM(A1:A3)` gives `=SUM(A1:A2)`, and only a range whose
+  every cell is gone becomes `=SUM(#REF!)`.
+- Duplicating elements remaps `calc` formulas to the copied table's outputs, so
+  a copied calculation reads the copy instead of the original.
+- Removing a table reports the formulas that now point at its deleted outputs,
+  so the editor can surface the problem before render.
+- Grid cells resolve their column key at the first `:`, so a column key that
+  contains a colon still lays out correctly.
 
 ### Removed
 
