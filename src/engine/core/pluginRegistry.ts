@@ -1,6 +1,11 @@
 import type { TemplateElement } from '@/engine/core/document.js';
 import type { RenderIssue } from '@/engine/utils/errors.js';
-import type { AnyLayoutPDFPlugin, PluginRegistry } from '@/engine/core/plugin.js';
+import {
+  SUPPORTED_PLUGIN_API_VERSION,
+  type AnyLayoutPDFPlugin,
+  type PluginRegistry,
+} from '@/engine/core/plugin.js';
+import { LayoutPDFRuntimeError } from '@/engine/utils/errors.js';
 import { TemplateElementSchema } from '@/engine/core/validation.js';
 
 const PROPERTY_ROOTS = new Set([
@@ -103,6 +108,20 @@ export function createPluginRegistry<TPlugin extends AnyLayoutPDFPlugin>(
     const type = plugin.metadata.type.trim();
     if (!type) throw new Error('Plugin type is required');
     if (byType.has(type)) throw new Error(`Duplicate plugin type: ${type}`);
+    if (
+      plugin.apiVersion !== undefined
+      && plugin.apiVersion !== SUPPORTED_PLUGIN_API_VERSION
+    ) {
+      throw new LayoutPDFRuntimeError(
+        'PLUGIN_API_VERSION_UNSUPPORTED',
+        `Plugin "${type}" targets API version ${plugin.apiVersion}; this library supports ${SUPPORTED_PLUGIN_API_VERSION}. Upgrade the library.`,
+        {
+          pluginType: type,
+          apiVersion: plugin.apiVersion,
+          supported: SUPPORTED_PLUGIN_API_VERSION,
+        },
+      );
+    }
     validatePropertyDefinitions(plugin);
     validateDefaultElement(plugin);
     byType.set(type, plugin);

@@ -11,6 +11,7 @@ export const LinePropsSchema = z.object({
 export type LineProps = z.infer<typeof LinePropsSchema>;
 
 export const linePlugin: LayoutPDFPlugin<LineProps, null> = {
+  apiVersion: 1,
   metadata: { type: 'line', label: '直线', labelKey: 'plugin.line.label', category: 'layout' },
   propsSchema: LinePropsSchema,
   valueSchema: z.null(),

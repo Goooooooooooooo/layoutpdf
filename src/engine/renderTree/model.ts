@@ -2,7 +2,12 @@ import type { ElementBox, JsonObject, JsonValue } from '@/engine/core/document.j
 import type { RenderIssue } from '@/engine/utils/errors.js';
 import type { FormatLocaleSettings } from '@/i18n/locales.js';
 
+/** Node shape version of `RenderDocument`. Bump only on a breaking IR change. */
+export const RENDER_DOCUMENT_VERSION = 1;
+
 export interface RenderDocument {
+  /** Emitted by the engine; lets workers and hosts detect an incompatible IR. */
+  version: number;
   templateId: string;
   format: FormatLocaleSettings;
   pages: RenderPage[];

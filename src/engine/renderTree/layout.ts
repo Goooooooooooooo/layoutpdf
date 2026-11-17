@@ -125,6 +125,7 @@ export function layoutRenderTree(
   const shouldPaginate = options.paginate !== false;
   const paginated = shouldPaginate
     ? paginateTables({
+        version: document.version,
         templateId: document.templateId,
         format,
         pages,
@@ -213,6 +214,7 @@ export function layoutRenderTree(
     }
   }
   return {
+    version: document.version,
     templateId: document.templateId,
     format,
     pages: finalPages,

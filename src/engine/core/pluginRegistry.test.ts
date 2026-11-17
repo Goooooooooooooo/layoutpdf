@@ -6,6 +6,8 @@ import type { FontManager } from '../pdf/font/fontManager.js';
 import type { LayoutPDFPlugin, RenderBuildContext } from './plugin.js';
 import { createPluginRegistry } from './pluginRegistry.js';
 import { defaultFormatSettingsForLocale } from '@/i18n/index.js';
+import { SUPPORTED_PLUGIN_API_VERSION } from './plugin.js';
+import { pluginRegistry } from '@/plugins/index.js';
 
 const propsSchema = z.object({ fontSize: z.number().positive() });
 type TextProps = z.infer<typeof propsSchema>;
@@ -125,6 +127,21 @@ describe('createPluginRegistry', () => {
       properties: [{ path: 'internal.secret', label: 'Secret', editor: 'text' }],
     });
     assert.throws(() => createPluginRegistry([plugin]), /invalid property path/);
+  });
+
+  it('rejects a plugin that targets another API version', () => {
+    const plugin = createTextPlugin({ apiVersion: SUPPORTED_PLUGIN_API_VERSION + 1 });
+
+    assert.throws(
+      () => createPluginRegistry([plugin]),
+      (error: unknown) => (error as { code?: string }).code === 'PLUGIN_API_VERSION_UNSUPPORTED',
+    );
+  });
+
+  it('declares the supported API version on every bundled plugin', () => {
+    for (const plugin of pluginRegistry.list()) {
+      assert.equal(plugin.apiVersion, SUPPORTED_PLUGIN_API_VERSION, plugin.metadata.type);
+    }
   });
 
   it('returns structured issues for unknown and invalid plugin data', () => {

@@ -30,6 +30,7 @@ export const CurrencyValueSchema = z.union([z.number(), z.string()]);
 export type CurrencyValue = z.infer<typeof CurrencyValueSchema>;
 
 export const currencyPlugin: LayoutPDFPlugin<CurrencyProps, CurrencyValue> = {
+  apiVersion: 1,
   metadata: {
     type: 'currency',
     label: '金额',

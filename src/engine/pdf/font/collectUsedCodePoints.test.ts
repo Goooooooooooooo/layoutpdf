@@ -75,6 +75,7 @@ describe('collectUsedCodePoints', () => {
 
   it('extracts code points from text node', () => {
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't',
       format,
       issues: [],
@@ -93,6 +94,7 @@ describe('collectUsedCodePoints', () => {
     bold.style.fontName = 'Bold';
     bold.style.fontWeight = 'bold';
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't',
       format,
       issues: [],
@@ -146,6 +148,7 @@ describe('collectUsedCodePoints', () => {
       style: { headerHeight: 10, rowHeight: 8, fontSize: 10, border: { width: 0.5, color: '#000', style: 'solid' }, headerBackground: '#eee', headerColor: '#000', bodyColor: '#000' },
     };
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't', format, issues: [],
       pages: [{ id: 'p1', sourcePageId: 'p1', continuationIndex: 0, size: { width: 210, height: 297 }, padding: [0, 0, 0, 0], background: { kind: 'blank' }, nodes: [node] }],
     };
@@ -172,6 +175,7 @@ describe('collectUsedCodePoints', () => {
       style: { headerHeight: 8, rowHeight: 8, fontSize: 10, border: { width: 0.5, color: '#000', style: 'solid' }, headerBackground: '#eee', headerColor: '#000', bodyColor: '#000' },
     };
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't', format, issues: [],
       pages: [{ id: 'p1', sourcePageId: 'p1', continuationIndex: 0, size: { width: 210, height: 297 }, padding: [0, 0, 0, 0], background: { kind: 'blank' }, nodes: [node] }],
     };
@@ -216,6 +220,7 @@ describe('collectUsedCodePoints', () => {
       style: { headerHeight: 8, rowHeight: 8, fontSize: 10, border: { width: 0.5, color: '#000', style: 'solid' } },
     };
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't', format, issues: [],
       pages: [{ id: 'p1', sourcePageId: 'p1', continuationIndex: 0, size: { width: 210, height: 297 }, padding: [0, 0, 0, 0], background: { kind: 'blank' }, nodes: [node] }],
     };
@@ -225,6 +230,7 @@ describe('collectUsedCodePoints', () => {
 
   it('returns unique non-empty rendered text runs', () => {
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't',
       format,
       issues: [],
@@ -243,6 +249,7 @@ describe('collectUsedCodePoints', () => {
 
   it('handles surrogate pair code points', () => {
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't', format, issues: [],
       pages: [{ id: 'p1', sourcePageId: 'p1', continuationIndex: 0, size: { width: 210, height: 297 }, padding: [0, 0, 0, 0], background: { kind: 'blank' }, nodes: [textNode('𠀋')] }],
     };
@@ -253,6 +260,7 @@ describe('collectUsedCodePoints', () => {
 
   it('handles empty text gracefully', () => {
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't', format, issues: [],
       pages: [{ id: 'p1', sourcePageId: 'p1', continuationIndex: 0, size: { width: 210, height: 297 }, padding: [0, 0, 0, 0], background: { kind: 'blank' }, nodes: [textNode('')] }],
     };

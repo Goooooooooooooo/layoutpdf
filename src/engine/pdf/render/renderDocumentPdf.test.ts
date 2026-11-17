@@ -173,6 +173,7 @@ function gridNode(manager: PdfFontManager): GridNode {
 
 function renderDocument(nodes: RenderNode[] = [rectNode(), lineNode(), textNode()]): RenderDocument {
   return {
+    version: 1,
     templateId: 'tpl_1',
     format,
     issues: [],
@@ -723,6 +724,7 @@ describe('renderDocumentPdf', () => {
       return node;
     });
     const document: RenderDocument = {
+      version: 1,
       templateId: 'tpl_1',
       format,
       issues: [],

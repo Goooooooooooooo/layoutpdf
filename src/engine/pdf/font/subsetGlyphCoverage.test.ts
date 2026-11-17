@@ -58,6 +58,7 @@ describe('subset glyph coverage', () => {
     const fontBytes = new Uint8Array(await readFile('public/fonts/NotoSansCJKjp-Regular.otf'));
 
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't', format, issues: [],
       pages: [{
         id: 'p1', sourcePageId: 'p1', continuationIndex: 0,
@@ -141,6 +142,7 @@ describe('subset glyph coverage', () => {
     const fontBytes = new Uint8Array(await readFile('public/fonts/NotoSansCJKjp-Regular.otf'));
 
     const codepoints = collectUsedCodePoints({
+      version: 1,
       templateId: 't', format, issues: [],
       pages: [{
         id: 'p1', sourcePageId: 'p1', continuationIndex: 0,
@@ -170,6 +172,7 @@ describe('subset glyph coverage', () => {
     const sourceFont = fontkit.create(fontBytes);
 
     const doc: RenderDocument = {
+      version: 1,
       templateId: 't',
       format,
       issues: [],

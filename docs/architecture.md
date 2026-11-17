@@ -112,7 +112,8 @@ TemplateFile + Input
 - 内部单位统一为 mm，只有 PDF 输出层转换为 pt。
 - 每个节点都有 `box / zIndex / clip`。
 - 布局错误通过 `RenderIssue` 表达，`strict` 模式直接抛错。
-- IR 自身也要有版本号，避免插件生态升级时无兼容判断。
+- IR 自身也要有版本号，避免插件生态升级时无兼容判断。当前为
+`RENDER_DOCUMENT_VERSION = 1`，只在节点结构不兼容变化时递增。
 
 ### 3.3 `Plugin`：数据 + 节点 + 可选渲染器
 
@@ -479,6 +480,7 @@ validate
 - ✅ 抽出 `preview-react` 公开预览入口。
 - ✅ 框架无关的 `preview-dom`。
 - ✅ 引擎级 `format`（locale / currency / timeZone）配置。
+- ✅ 模板迁移 `migrateTemplate`、插件 `apiVersion`、IR `RenderDocument.version`。
 - ⏳ 引擎级字体配置与插件清单懒加载。
 
 ### M2：PDF 产品化（约 1 周）
@@ -519,7 +521,7 @@ validate
 
 | 能力 | 现状 | 下一步 |
 |---|---|---|
-| 模板/数据/IR | `TemplateFile v3` + `RenderDocument` | 公开 JSON Schema、迁移 API、IR 版本 |
+| 模板/数据/IR | `TemplateFile v3` + `RenderDocument` | `migrateTemplate`、插件 `apiVersion`、IR `version` 已提供；下一步是版本演进策略 |
 | 模板编辑 | `TemplateBuilder` + `TemplateEditor`（页面/元素 add、update、remove、move、duplicate） | 更多批量/布局辅助 API |
 | 插件 | 18 个默认插件（basic + business） | 插件可贡献渲染器；插件清单懒加载 |
 | 插件渲染扩展 | `plugin` 节点 + RendererRegistry | 保持 |

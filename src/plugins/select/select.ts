@@ -20,6 +20,7 @@ export const SelectPropsSchema = TextVisualPropsSchema.extend({
 export type SelectProps = z.infer<typeof SelectPropsSchema>;
 
 export const selectPlugin: LayoutPDFPlugin<SelectProps, string> = {
+  apiVersion: 1,
   metadata: {
     type: 'select',
     label: '下拉选择',

@@ -21,6 +21,7 @@ const format = defaultFormatSettingsForLocale('ja-JP');
 
 function documentWith(node: TextNode): RenderDocument {
   return {
+    version: 1,
     templateId: 'tpl_1',
     format,
     issues: [],
@@ -124,6 +125,7 @@ describe('layoutRenderTree', () => {
       },
     })[0];
     const input: RenderDocument = {
+      version: 1,
       templateId: 'tpl_1',
       format,
       issues: [],
@@ -176,6 +178,7 @@ describe('layoutRenderTree', () => {
       },
     })[0];
     const input: RenderDocument = {
+      version: 1,
       templateId: 'tpl_1',
       format,
       issues: [],
@@ -232,6 +235,7 @@ describe('layoutRenderTree', () => {
       },
     })[0];
     const input: RenderDocument = {
+      version: 1,
       templateId: 'tpl_1',
       format,
       issues: [],
@@ -307,6 +311,7 @@ describe('layoutRenderTree', () => {
       fill: '#000000',
     };
     const input: RenderDocument = {
+      version: 1,
       templateId: 'tpl_1',
       format,
       issues: [],
@@ -360,6 +365,7 @@ describe('layoutRenderTree', () => {
       },
     })[0];
     const input: RenderDocument = {
+      version: 1,
       templateId: 'tpl_1',
       format,
       issues: [],

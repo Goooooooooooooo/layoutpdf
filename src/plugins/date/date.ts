@@ -21,6 +21,7 @@ export const DateValueSchema = z.string().refine(
 );
 
 export const datePlugin: LayoutPDFPlugin<DateProps, string> = {
+  apiVersion: 1,
   metadata: {
     type: 'date',
     label: '日期',

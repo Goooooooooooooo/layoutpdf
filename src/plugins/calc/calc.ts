@@ -23,6 +23,7 @@ export const CalcPropsSchema = TextVisualPropsSchema.extend({
 export type CalcProps = z.infer<typeof CalcPropsSchema>;
 
 export const calcPlugin: LayoutPDFPlugin<CalcProps, string> = {
+  apiVersion: 1,
   metadata: { type: 'calc', label: '计算', labelKey: 'plugin.calc.label', category: 'business' },
   propsSchema: CalcPropsSchema,
   valueSchema: z.string(),

@@ -302,6 +302,7 @@ function buildBand(
 }
 
 export const summaryPlugin: LayoutPDFPlugin<SummaryBlockProps, null> = {
+  apiVersion: 1,
   metadata: {
     type: 'summary',
     label: '汇总块',

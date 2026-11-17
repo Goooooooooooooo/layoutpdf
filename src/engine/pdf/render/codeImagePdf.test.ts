@@ -46,6 +46,7 @@ describe('generated code images', () => {
     assert.ok(barcodeImage.width > barcodeImage.height);
 
     const document: RenderDocument = {
+      version: 1,
       templateId: 'template_1',
       format: context.format,
       issues: [],

@@ -231,17 +231,29 @@ editor.moveElements(ids, {
 
 ```ts
 import {
+  CURRENT_TEMPLATE_VERSION,
+  migrateTemplate,
   parseTemplateJson,
   stringifyTemplateJson,
   validateTemplateFile,
 } from 'layoutpdf/core';
 
-const file = parseTemplateJson(json);
+const file = migrateTemplate(json); // upgrades older versions, rejects newer ones
 const issues = validateTemplateFile(file); // warnings + errors
 const text = stringifyTemplateJson(file, { space: 2 });
 ```
 
-`parseTemplateJson` and `stringifyTemplateJson` validate by default.
+`parseTemplateJson` and `stringifyTemplateJson` validate by default and expect
+the current `version` (available as `CURRENT_TEMPLATE_VERSION`, currently `3`).
+Call `migrateTemplate` first when the JSON may come from an older or newer
+release:
+
+- a newer version throws `TEMPLATE_VERSION_UNSUPPORTED` so the host can ask the
+  user to upgrade the library;
+- an older version without a registered migration throws
+  `TEMPLATE_VERSION_NOT_MIGRATABLE`;
+- the migrated file is validated before it is returned.
+
 `validateTemplateFile` returns `ValidationIssue[]` with `severity`, `code`,
 `message`, and optional `path`, `pageId`, `elementId`, and `inputKey`.
 
@@ -307,7 +319,9 @@ const nextPreview = session.preview();
 
 A `RenderDocument` contains pages of positioned `RenderNode`s plus a list of
 `RenderIssue`s. It is shared by `preview-react`, `preview-dom`, and the PDF
-renderer.
+renderer. Its `version` field is `RENDER_DOCUMENT_VERSION` (currently `1`) and
+is bumped only when the node shape changes incompatibly, so workers and hosts
+can reject a mismatched document instead of rendering it wrong.
 
 ### PDF options
 
@@ -456,6 +470,7 @@ only supported by `preview-react`.
 import { definePlugin } from 'layoutpdf/core';
 
 const stampPlugin = definePlugin({
+  apiVersion: 1,
   metadata: { type: 'stamp', label: 'Stamp', category: 'business' },
   propsSchema,
   valueSchema,
@@ -472,6 +487,11 @@ const engine = await createDefaultEngine({
   plugins: [...plugins, stampPlugin],
 });
 ```
+
+`apiVersion` is optional and defaults to the supported plugin API version
+(`SUPPORTED_PLUGIN_API_VERSION`, currently `1`). Declare it when publishing; the
+registry rejects a plugin whose version does not match with
+`PLUGIN_API_VERSION_UNSUPPORTED`.
 
 `definePluginPack` groups related plugins. Custom render nodes use
 `kind: 'plugin'` with a unique `pluginType`; PDF and DOM renderers are looked up
@@ -570,5 +590,8 @@ before the policy is applied.
 ## Versioning
 
 See [`release.md`](./release.md). Template files currently use
-`format: "layoutpdf-template"` and `version: 3`. The package follows SemVer;
-pre-1.0 minor releases may include breaking changes.
+`format: "layoutpdf-template"` and `version: 3`; `migrateTemplate` upgrades
+older files and rejects files from a newer release. Returns
+`RenderDocument.version` as `RENDER_DOCUMENT_VERSION` and plugins declare
+`apiVersion`. The package follows SemVer; pre-1.0 minor releases may include
+breaking changes.

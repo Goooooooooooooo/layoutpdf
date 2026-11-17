@@ -5,7 +5,12 @@ import type { InputRecord } from '@/engine/core/input.js';
 import { isMissingRequiredInput, resolveElementValue } from '@/engine/core/input.js';
 import type { PluginRegistry, RenderBuildContext } from '@/engine/core/plugin.js';
 import { JsonValueSchema, TemplateFileSchema, validateTemplateFile } from '@/engine/core/validation.js';
-import type { RenderDocument, RenderNode, RenderPage } from '@/engine/renderTree/model.js';
+import {
+  RENDER_DOCUMENT_VERSION,
+  type RenderDocument,
+  type RenderNode,
+  type RenderPage,
+} from '@/engine/renderTree/model.js';
 import {
   resolveFormatLocaleSettings,
   type FormatLocaleSettings,
@@ -253,6 +258,7 @@ export function resolveRenderTree(args: ResolveRenderTreeArgs): RenderDocument {
   );
   if (!structuralResult.success) {
     return {
+      version: RENDER_DOCUMENT_VERSION,
       templateId: 'invalid',
       format: fallbackFormat,
       pages: [],
@@ -287,6 +293,7 @@ export function resolveRenderTree(args: ResolveRenderTreeArgs): RenderDocument {
   }
 
   const logical = {
+    version: RENDER_DOCUMENT_VERSION,
     templateId: file.template.id,
     format,
     pages,

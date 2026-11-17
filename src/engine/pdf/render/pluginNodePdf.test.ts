@@ -100,6 +100,7 @@ describe('custom plugin nodes', () => {
     const fontManager = createFontManager(createPdfFontFromBytes(fontBytes, 'Test CJK'));
     const file = createBlankTemplateFile({ idGenerator: prefix => `${prefix}_missing` });
     const document: RenderDocument = {
+      version: 1,
       templateId: file.template.id,
       format: DEFAULT_FORMAT_LOCALE_SETTINGS,
       pages: [{
