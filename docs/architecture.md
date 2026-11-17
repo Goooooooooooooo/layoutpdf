@@ -88,6 +88,8 @@ src/
 - 有明确的 `format` 和 `version`。
 - 有公开 JSON Schema，供外部表单、低代码平台、后端校验。
 - 有公开迁移函数：`migrateTemplate(json): TemplateFile`。
+- 读取/保存路径在严格校验前会归一化历史字段（例如分组式表格分页
+  `followGroupId` → `finalElementIds`），不能让旧草稿静默丢失数据。
 - 向后兼容承诺只覆盖已发布的大版本。
 
 当前模板版本为 `3`。

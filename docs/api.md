@@ -254,6 +254,12 @@ release:
   `TEMPLATE_VERSION_NOT_MIGRATABLE`;
 - the migrated file is validated before it is returned.
 
+`parseTemplateJson` and `stringifyTemplateJson` also resolve the short-lived
+group-based table pagination (`pagination.followGroupId`) into
+`pagination.finalElementIds` before validating, so drafts saved by that
+prototype keep the placement of their final-page elements. The rewrite is a
+no-op for current files.
+
 `validateTemplateFile` returns `ValidationIssue[]` with `severity`, `code`,
 `message`, and optional `path`, `pageId`, `elementId`, and `inputKey`.
 

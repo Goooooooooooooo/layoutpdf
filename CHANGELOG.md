@@ -38,6 +38,11 @@ for the pre-1.0 version policy.
   result, and rejects a newer file with `TEMPLATE_VERSION_UNSUPPORTED` instead of
   silently dropping data. `CURRENT_TEMPLATE_VERSION` and `TEMPLATE_FORMAT` are
   exported for hosts that branch on the version.
+- Loading or saving a template now resolves the short-lived group-based table
+  pagination (`followGroupId`) into `finalElementIds`. `parseTemplateJson`,
+  `stringifyTemplateJson`, and `migrateTemplate` normalize before validation, so
+  a draft saved by that prototype keeps the placement of its final-page
+  elements instead of silently losing it.
 - Plugins can declare `apiVersion`. Bundled plugins declare `1`, and
   `createPluginRegistry` rejects an incompatible plugin with
   `PLUGIN_API_VERSION_UNSUPPORTED`. The field stays optional so existing

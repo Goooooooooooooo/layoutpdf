@@ -1,4 +1,3 @@
-import type { TemplateFile } from '@/engine/core/document.js';
 import { TABLE_PAGINATION_DEFAULTS } from '@/engine/core/tablePaginationPolicy.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -12,33 +11,58 @@ function stringArray(value: unknown): string[] | undefined {
   return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
 }
 
+function pageElements(page: unknown): unknown[] {
+  return isRecord(page) && Array.isArray(page.elements) ? page.elements : [];
+}
+
+function legacyPaginationOf(element: unknown): JsonRecord | undefined {
+  if (!isRecord(element) || element.type !== 'table' || !isRecord(element.props)) return undefined;
+  const pagination = element.props.pagination;
+  if (!isRecord(pagination)) return undefined;
+  return Object.prototype.hasOwnProperty.call(pagination, 'followGroupId')
+    ? pagination
+    : undefined;
+}
+
 /**
  * Converts the short-lived group-based Table pagination prototype into stable element refs.
- * The input is never mutated; unchanged files retain their original identity.
+ *
+ * Both `migrateTemplate` and `parseTemplateJson` run this before validation:
+ * the schema only knows the element-ref shape, so without this step a legacy
+ * `followGroupId` is stripped and the final-page elements silently lose their
+ * placement. The input is never mutated; files without the legacy key keep
+ * their original identity.
  */
-export function migrateLegacyTablePagination(file: TemplateFile): TemplateFile {
-  const hasLegacyPagination = file.template.pages.some(page => page.elements.some(element => {
-    if (element.type !== 'table' || !isRecord(element.props)) return false;
-    const pagination = element.props.pagination;
-    return isRecord(pagination) && Object.prototype.hasOwnProperty.call(pagination, 'followGroupId');
-  }));
+export function migrateLegacyTablePagination<T>(file: T): T {
+  if (!isRecord(file)) return file;
+  const template = file.template;
+  if (!isRecord(template) || !Array.isArray(template.pages)) return file;
+  const hasLegacyPagination = template.pages.some(page =>
+    pageElements(page).some(element => legacyPaginationOf(element) !== undefined)
+  );
   if (!hasLegacyPagination) return file;
 
-  const migrated = structuredClone(file);
-  for (const page of migrated.template.pages) {
-    for (const element of page.elements) {
-      if (element.type !== 'table' || !isRecord(element.props)) continue;
-      const pagination = element.props.pagination;
-      if (!isRecord(pagination) || !Object.prototype.hasOwnProperty.call(pagination, 'followGroupId')) continue;
+  const migrated = structuredClone(file) as JsonRecord;
+  const pages = (migrated.template as JsonRecord).pages as unknown[];
+  for (const page of pages) {
+    const elements = pageElements(page);
+    for (const element of elements) {
+      const pagination = legacyPaginationOf(element);
+      if (!pagination) continue;
 
       const legacyGroupId = typeof pagination.followGroupId === 'string'
         ? pagination.followGroupId.trim()
         : '';
       const explicitFinalIds = stringArray(pagination.finalElementIds);
       const finalElementIds = explicitFinalIds ?? (legacyGroupId
-        ? page.elements
-          .filter(candidate => candidate.groupId === legacyGroupId && candidate.type !== 'table')
-          .map(candidate => candidate.id)
+        ? elements
+          .filter(candidate =>
+            isRecord(candidate)
+            && candidate.groupId === legacyGroupId
+            && candidate.type !== 'table'
+            && typeof candidate.id === 'string'
+          )
+          .map(candidate => (candidate as { id: string }).id)
         : []);
       const repeatElementIds = stringArray(pagination.repeatElementIds)
         ?? [...TABLE_PAGINATION_DEFAULTS.repeatElementIds];
@@ -52,7 +76,7 @@ export function migrateLegacyTablePagination(file: TemplateFile): TemplateFile {
         ? pagination.gapAfterTable
         : TABLE_PAGINATION_DEFAULTS.gapAfterTable;
       const { followGroupId: _removed, ...rest } = pagination;
-      element.props.pagination = {
+      (element as { props: JsonRecord }).props.pagination = {
         ...rest,
         finalElementIds,
         repeatElementIds,
@@ -62,5 +86,5 @@ export function migrateLegacyTablePagination(file: TemplateFile): TemplateFile {
       };
     }
   }
-  return migrated;
+  return migrated as T;
 }

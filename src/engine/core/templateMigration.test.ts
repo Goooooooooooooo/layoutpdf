@@ -9,6 +9,8 @@ import {
 } from '@/engine/core/templateMigration.js';
 import { LayoutPDFValidationError } from '@/engine/utils/errors.js';
 import type { TemplateFile } from '@/engine/core/document.js';
+import { rectPlugin } from '@/plugins/rect/rect.js';
+import { tablePlugin } from '@/plugins/table/table.js';
 
 function fileWithVersion(version: number): TemplateFile {
   return { ...createBlankTemplateFile({ idGenerator: prefix => `${prefix}_1` }), version };
@@ -23,7 +25,45 @@ function errorCode(fn: () => unknown): string | undefined {
   return undefined;
 }
 
+function legacyPaginationFile(): Record<string, unknown> {
+  const table = tablePlugin.createDefaultElement({ id: 'el_table', position: { x: 10, y: 20 } });
+  const footerA = rectPlugin.createDefaultElement({ id: 'el_footer_a', position: { x: 10, y: 60 } });
+  const footerB = rectPlugin.createDefaultElement({ id: 'el_footer_b', position: { x: 10, y: 70 } });
+  footerA.groupId = 'grp_footer';
+  footerB.groupId = 'grp_footer';
+  const pagination = (table.props as { pagination: Record<string, unknown> }).pagination;
+  delete pagination.finalElementIds;
+  pagination.followGroupId = 'grp_footer';
+  const file = createBlankTemplateFile({ idGenerator: prefix => `${prefix}_1` });
+  file.template.pages[0].elements.push(table, footerA, footerB);
+  return JSON.parse(JSON.stringify(file)) as Record<string, unknown>;
+}
+
 describe('migrateTemplate', () => {
+  it('resolves legacy group-based pagination before validating', () => {
+    const migrated = migrateTemplate(legacyPaginationFile());
+
+    const table = migrated.template.pages[0].elements.find(element => element.type === 'table');
+    const pagination = (table?.props as { pagination: Record<string, unknown> }).pagination;
+    assert.deepEqual(
+      pagination.finalElementIds,
+      ['el_footer_a', 'el_footer_b'],
+      'legacy group members become element refs',
+    );
+    assert.equal(Object.prototype.hasOwnProperty.call(pagination, 'followGroupId'), false);
+  });
+
+  it('keeps explicit final element ids over the legacy group', () => {
+    const raw = legacyPaginationFile();
+    const elements = ((raw.template as { pages: Array<{ elements: Array<{ props: { pagination: Record<string, unknown> } }> }> }).pages[0].elements);
+    elements[0].props.pagination.finalElementIds = ['el_footer_b'];
+
+    const migrated = migrateTemplate(raw);
+
+    const pagination = (migrated.template.pages[0].elements[0].props as { pagination: Record<string, unknown> }).pagination;
+    assert.deepEqual(pagination.finalElementIds, ['el_footer_b']);
+  });
+
   it('returns a validated copy of a current template', () => {
     const file = fileWithVersion(CURRENT_TEMPLATE_VERSION);
 
