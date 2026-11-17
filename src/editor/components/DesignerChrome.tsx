@@ -24,6 +24,7 @@ import {
 } from '@/editor/layout/designerGeometry.js';
 import type { DocumentAction, DocumentState } from '@/editor/state/documentState.js';
 import { expandElementIdsToGroups } from '@/engine/core/elementGroups.js';
+import { useDeleteElements } from '@/editor/hooks/useDeleteElements.js';
 
 interface DesignerChromeProps {
   page: RenderPage;
@@ -106,6 +107,7 @@ export default function DesignerChrome({
   onDoubleClickElement,
 }: DesignerChromeProps) {
   const sourcePage = state.templateFile.template.pages.find(item => item.id === page.sourcePageId);
+  const deleteElements = useDeleteElements(state.templateFile.template, dispatch);
   const [interaction, setInteraction] = useState<Interaction | null>(null);
   const [previewBoxes, setPreviewBoxes] = useState<Record<string, ElementBox>>({});
   const [previewRotations, setPreviewRotations] = useState<Record<string, number>>({});
@@ -287,6 +289,7 @@ export default function DesignerChrome({
       hasClipboard,
       onCopy,
       onPaste,
+      onDelete: deleteElements,
     }), [
       'copy',
       'paste',
@@ -498,7 +501,7 @@ export default function DesignerChrome({
                     event.preventDefault();
                     event.stopPropagation();
                   }}
-                  onClick={() => dispatch({ type: 'element/delete', ids: [element.id] })}
+                  onClick={() => deleteElements([element.id])}
                 >
                   <Icon name="trash" />
                 </IconButton>

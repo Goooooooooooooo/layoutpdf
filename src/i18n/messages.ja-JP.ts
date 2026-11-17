@@ -726,6 +726,8 @@ export const jaJPMessages = {
   'editor.canvas.exitPreview': 'プレビューを終了',
   'editor.canvas.exitPreview.title': 'テンプレート編集に戻る（Esc）',
   'editor.chrome.delete': '選択した要素を削除',
+  'editor.chrome.danglingOutputsTitle': '削除した要素を参照する数式があります',
+  'editor.chrome.danglingOutputsDetail': '{count} 件の数式が削除されたテーブルの出力を参照しており、プレビューや書き出しで欠落として表示されます。',
   'editor.chrome.resize': 'リサイズ',
   'editor.chrome.rotate': '回転',
   'editor.chrome.copy': 'コピー',

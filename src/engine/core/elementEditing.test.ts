@@ -116,4 +116,34 @@ describe('removeElementsFromTemplate', () => {
     assert.equal(template.pages[0].elements.length, 1);
     assert.equal(template.pages[0].elements[0].id, table.id);
   });
+
+  it('reports references from a formula on another page', () => {
+    const table = tablePlugin.createDefaultElement({ id: 'el_table', position: { x: 10, y: 20 } });
+    const footerId = tableFooterId(table);
+    const calc = calcPlugin.createDefaultElement({ id: 'el_calc', position: { x: 10, y: 20 } });
+    calc.value = createFormulaOutputReference(table.id, footerId);
+    const page = (id: string, elements: TemplatePage['elements']): TemplatePage => ({
+      id,
+      size: { width: 210, height: 297 },
+      padding: [10, 10, 10, 10],
+      background: { kind: 'blank', color: '#ffffff' },
+      elements,
+    });
+    const template: LayoutPDFTemplate = {
+      version: 3,
+      id: 'tpl_1',
+      name: 'Template',
+      pages: [page('page_1', [table]), page('page_2', [calc])],
+    };
+    const seen: Array<{ elementId: string; reference: string }> = [];
+
+    removeElementsFromTemplate(template, [table.id], {
+      onDanglingOutputReference: reference => seen.push(reference),
+    });
+
+    assert.deepEqual(seen, [{
+      elementId: calc.id,
+      reference: createFormulaOutputReference(table.id, footerId),
+    }]);
+  });
 });
