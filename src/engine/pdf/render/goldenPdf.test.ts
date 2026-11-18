@@ -26,6 +26,7 @@ interface GoldenSummary {
 const fixtureUrl = new URL('./__golden__/invoice.json', import.meta.url);
 const tableFixtureUrl = new URL('./__golden__/table-footer-decimals.json', import.meta.url);
 const baselineFixtureUrl = new URL('./__golden__/text-baseline.json', import.meta.url);
+const wrappingFixtureUrl = new URL('./__golden__/text-wrapping.json', import.meta.url);
 
 function round(value: number): number {
   return Math.round(value * 100) / 100;
@@ -178,6 +179,41 @@ async function buildTableFooterGoldenPdf(): Promise<Uint8Array> {
     .generatePdf({ subsetter: true });
 }
 
+async function buildWrappingGoldenPdf(): Promise<Uint8Array> {
+  const engine = await createNodeEngine();
+  const template = engine
+    .createTemplate({ name: 'Golden line breaking' })
+    .addElement('text', {
+      id: 'latin',
+      x: 20,
+      y: 20,
+      box: { width: 20, height: 40 },
+      value: 'alpha beta gamma',
+      props: { fontSize: 12 },
+    })
+    .addElement('text', {
+      id: 'closing_punctuation',
+      x: 60,
+      y: 20,
+      box: { width: 17.2, height: 40 },
+      value: 'あいう。えお',
+      props: { fontSize: 12 },
+    })
+    .addElement('text', {
+      id: 'opening_punctuation',
+      x: 100,
+      y: 20,
+      box: { width: 14.7, height: 40 },
+      value: 'あ（いうえ',
+      props: { fontSize: 12 },
+    })
+    .build();
+
+  return engine
+    .createDocument(template, {})
+    .generatePdf({ subsetter: true });
+}
+
 describe('golden PDF', () => {
   it('matches the checked-in layout snapshot', async () => {
     const bytes = await buildGoldenPdf();
@@ -205,6 +241,26 @@ describe('golden PDF', () => {
     assert.deepEqual(summary, expected);
     const texts = summary.pages.flatMap(page => page.text.map(item => item.text));
     assert.ok(texts.includes('1,234.57'), `expected rounded footer value, got ${texts.join(' | ')}`);
+  });
+
+  it('breaks lines at word boundaries and respects kinsoku', async () => {
+    const bytes = await buildWrappingGoldenPdf();
+    const summary = await summarize(bytes);
+    if (process.env.UPDATE_GOLDEN === '1') {
+      await writeFile(wrappingFixtureUrl, `${JSON.stringify(summary, null, 2)}\n`);
+    }
+    const expected = JSON.parse(await readFile(wrappingFixtureUrl, 'utf8')) as GoldenSummary;
+    assert.deepEqual(summary, expected);
+
+    const texts = summary.pages.flatMap(page => page.text.map(item => item.text));
+    // Latin words stay whole instead of splitting mid-word.
+    assert.ok(texts.includes('alpha'), `expected alpha, got ${texts.join(' | ')}`);
+    assert.ok(texts.includes('beta'), `expected beta, got ${texts.join(' | ')}`);
+    assert.ok(texts.includes('gamma'), `expected gamma, got ${texts.join(' | ')}`);
+    // Closing punctuation never starts a line, opening punctuation never ends one.
+    assert.ok(texts.every(text => !text.startsWith('。')), '。 must not start a line');
+    assert.ok(texts.every(text => !text.endsWith('（')), '（ must not end a line');
+    assert.ok(texts.includes('う。え'), `expected 。 to stay with the preceding line, got ${texts.join(' | ')}`);
   });
 
   it('keeps baselines stable across 1.0, 1.5, and 3.0 line heights', async () => {

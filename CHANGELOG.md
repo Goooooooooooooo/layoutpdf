@@ -54,6 +54,11 @@ for the pre-1.0 version policy.
 
 ### Fixed
 
+- Text wrapping breaks at word boundaries instead of inside Latin words, drops
+  the space at a line break, and applies Japanese/Chinese kinsoku: closing
+  punctuation never starts a line and opening punctuation never ends one.
+  Tables and text nodes wrap through the same function, so measurement,
+  preview, and PDF use one line set.
 - Table pagination derives its floor from the absolute top of the table, so a
   decoration starting above the table no longer truncates the rows.
 - A table row that fits either the source-page slot or a continuation slot stays
