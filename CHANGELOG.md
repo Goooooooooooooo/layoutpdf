@@ -54,6 +54,10 @@ for the pre-1.0 version policy.
 
 ### Fixed
 
+- Undo and redo keep the asset bytes that any reachable history snapshot still
+  references, so undoing an image insertion and redoing it no longer leaves the
+  element pointing at a deleted asset. History navigation also copies the asset
+  map instead of mutating the previous state.
 - Text can mix fonts per glyph. `createFontManager` walks a fallback chain,
   splits each line into font runs, and measures, previews, draws, and subsets
   each run with the face that actually covers it. Fonts marked `fallback: true`
