@@ -295,6 +295,15 @@ const engine = await createDefaultEngine({
 });
 ```
 
+Font entries that share a `family` are treated as one face at different
+weights. A face from another family is only a glyph fallback, and entries with
+`fallback: true` are tried first. `createFontManager` splits each measured line
+into `runs` — contiguous text plus the face that covers it — so layout,
+preview, PDF drawing, and subsetting agree on which font paints which glyphs.
+Custom font managers may implement the optional `getFallbackChain` and
+`resolveTextRuns` members to opt in; without them the manager keeps the
+single-face behaviour.
+
 `DocumentEngine` exposes:
 
 | Member | Description |

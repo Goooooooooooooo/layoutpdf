@@ -1,11 +1,34 @@
 import type { FontManager } from '@/engine/pdf/font/fontManager.js';
 import { resolveFontFace } from '@/engine/pdf/font/fontManager.js';
 import { pdfPtToMm } from '@/engine/utils/units.js';
-import type { TextLayout, TextLayoutLine, TextNode } from '@/engine/renderTree/model.js';
+import type {
+  TextFontRun,
+  TextLayout,
+  TextLayoutLine,
+  TextNode,
+} from '@/engine/renderTree/model.js';
 
 export interface MeasuredLine {
   text: string;
   width: number;
+  /** Present only when the line needs a face other than `fontName`. */
+  runs?: TextFontRun[];
+}
+
+/**
+ * Runs are persisted only when they add information: a line entirely covered
+ * by its requested face keeps the historical single-font shape.
+ */
+export function resolveTextLineRuns(
+  fontManager: FontManager,
+  fontName: string,
+  text: string,
+): TextFontRun[] | undefined {
+  if (!text) return undefined;
+  const runs = fontManager.resolveTextRuns?.(fontName, text);
+  if (!runs || runs.length === 0) return undefined;
+  if (runs.length === 1 && runs[0].fontName === fontName) return undefined;
+  return runs;
 }
 
 // Shared font metrics and backend coordinate rounding can differ by a few hundredths
@@ -206,7 +229,14 @@ function wrapParagraph(
     }
 
     const text = joinTokens(tokens, start, end).replace(/\s+$/u, '');
-    if (text !== '') lines.push({ text, width: measure(text) });
+    if (text !== '') {
+      const runs = resolveTextLineRuns(fontManager, fontName, text);
+      lines.push({
+        text,
+        width: measure(text),
+        ...(runs ? { runs } : {}),
+      });
+    }
     start = end;
   }
   return lines.length > 0 ? lines : [{ text: '', width: 0 }];
@@ -288,6 +318,7 @@ export function createTextLayout(node: TextNode, fontManager: FontManager): Text
     x: resolveLineX(node.style.align, paddingLeft, contentWidth, line.width),
     y: blockY + index * lineHeightMm,
     width: line.width,
+    ...(line.runs ? { runs: line.runs } : {}),
   }));
 
   return {

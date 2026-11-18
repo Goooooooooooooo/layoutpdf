@@ -12,6 +12,7 @@ import type {
   RenderNode,
   RenderPage,
   TableNode,
+  TextLayoutLine,
   TextNode,
 } from '@/engine/renderTree/model.js';
 import { DEFAULT_TABLE_CELL_PADDING_MM } from '@/engine/renderTree/tablePresentation.js';
@@ -188,6 +189,25 @@ function applyInputOverlay(
   return control;
 }
 
+/**
+ * DOM uses the same run split as layout: each run becomes an inline span with
+ * its own family, so a fallback face covers exactly the characters the PDF
+ * gives it.
+ */
+function appendTextLine(element: HTMLElement, line: TextLayoutLine): void {
+  if (!line.runs) {
+    element.textContent = line.text;
+    return;
+  }
+  for (const run of line.runs) {
+    const span = document.createElement('span');
+    span.textContent = run.text;
+    setData(span, { fontRun: run.fontName });
+    applyStyle(span, { fontFamily: run.fontName });
+    element.appendChild(span);
+  }
+}
+
 function renderText(node: TextNode, options: DomPreviewOptions, zoom: number): HTMLElement {
   const container = document.createElement('div');
   setData(container, { nodeKind: 'text' });
@@ -201,7 +221,7 @@ function renderText(node: TextNode, options: DomPreviewOptions, zoom: number): H
 
   for (const line of node.layout.lines) {
     const span = document.createElement('span');
-    span.textContent = line.text;
+    appendTextLine(span, line);
     applyStyle(span, {
       position: 'absolute',
       left: `${mmToCssPx(line.x, zoom)}px`,
@@ -361,7 +381,13 @@ function renderTable(node: TableNode, options: DomPreviewOptions, zoom: number):
 
     if (cell.prefixText && cell.prefixTextX !== undefined) {
       const prefix = document.createElement('span');
-      prefix.textContent = cell.prefixText;
+      appendTextLine(prefix, {
+        text: cell.prefixText,
+        x: 0,
+        y: 0,
+        width: cell.prefixTextWidth ?? 0,
+        ...(cell.prefixTextRuns ? { runs: cell.prefixTextRuns } : {}),
+      });
       applyStyle(prefix, {
         position: 'absolute',
         left: `${mmToCssPx(cell.prefixTextX - cell.box.x, zoom)}px`,
@@ -378,15 +404,16 @@ function renderTable(node: TableNode, options: DomPreviewOptions, zoom: number):
       cellElement.appendChild(prefix);
     }
 
-    const lines = cell.lines ?? [{
+    const lines: TextLayoutLine[] = cell.lines ?? [{
       text: cell.text,
       x: cell.textX,
       y: cell.textY,
       width: cell.textWidth,
+      ...(cell.textRuns ? { runs: cell.textRuns } : {}),
     }];
     for (const line of lines) {
       const span = document.createElement('span');
-      span.textContent = line.text;
+      appendTextLine(span, line);
       span.dataset.tableTextLine = 'true';
       applyStyle(span, {
         position: 'absolute',
@@ -589,7 +616,7 @@ function renderGrid(node: GridNode, zoom: number): HTMLElement {
     ];
     for (const line of lines) {
       const span = document.createElement('span');
-      span.textContent = line.text;
+      appendTextLine(span, line);
       applyStyle(span, {
         position: 'absolute',
         left: `${mmToCssPx(line.x, zoom)}px`,

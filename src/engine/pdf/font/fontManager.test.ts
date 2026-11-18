@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import { PDFDocument } from 'pdf-lib';
 import { fontkit } from './fontkitRuntime.js';
 import { createFontManager } from './fontManager.js';
+import { initWithBytes, subsetFontBytes } from './subsetFont.js';
 
 describe('createFontManager', () => {
   it('uses one font source for glyph checks, measurement, browser, and PDF embedding', async () => {
@@ -91,6 +92,72 @@ describe('createFontManager', () => {
 
     const strict = createFontManager({ Font: { data: bytes, fallback: true } });
     assert.throws(() => strict.assertTextSupported('Font', '😀'), /missing glyphs/);
+  });
+
+  it('falls back to the next font for glyphs the primary face does not cover', async () => {
+    const [notoBytes, wasmBytes] = await Promise.all([
+      readFile('public/fonts/NotoSansCJKjp-Regular.otf'),
+      readFile('public/fonts/hb-subset.wasm'),
+    ]);
+    await initWithBytes(new Uint8Array(wasmBytes));
+    const latinCodePoints = new Set<number>();
+    for (let codePoint = 0x20; codePoint <= 0x7e; codePoint += 1) latinCodePoints.add(codePoint);
+    const latinBytes = await subsetFontBytes(new Uint8Array(notoBytes), latinCodePoints);
+    const manager = createFontManager({
+      Latin: { data: latinBytes, family: 'Latin', weight: 'normal' },
+      Full: { data: new Uint8Array(notoBytes), fallback: true, family: 'Full' },
+    });
+
+    assert.deepEqual(manager.getFallbackChain?.('Latin'), ['Latin', 'Full']);
+    const runs = manager.resolveTextRuns?.('Latin', 'Invoice 請求書');
+    assert.equal(runs?.map(run => run.text).join(''), 'Invoice 請求書');
+    assert.ok(runs?.some(run => run.fontName === 'Latin' && run.text.includes('Invoice')));
+    assert.ok(runs?.some(run => run.fontName === 'Full' && run.text.includes('請求書')));
+    assert.equal(
+      manager.measureText('Latin', '請求書', 12),
+      manager.measureText('Full', '請求書', 12),
+    );
+    assert.doesNotThrow(() => manager.assertTextSupported('Latin', 'Invoice 請求書'));
+
+    const reported: string[] = [];
+    const strict = createFontManager({
+      Latin: { data: latinBytes, family: 'Latin', weight: 'normal' },
+      Full: { data: new Uint8Array(notoBytes), fallback: true, family: 'Full' },
+    }, { onMissingGlyphs: (_name, missing) => reported.push(...missing) });
+    assert.throws(() => strict.assertTextSupported('Latin', 'Invoice 😀'), /missing glyphs/);
+    assert.deepEqual(reported, ['😀']);
+  });
+
+  it('invalidates measurement and fallback caches when font bytes change', async () => {
+    const [notoBytes, boldBytes, wasmBytes] = await Promise.all([
+      readFile('public/fonts/NotoSansCJKjp-Regular.otf'),
+      readFile('public/fonts/NotoSansCJKjp-Bold.otf'),
+      readFile('public/fonts/hb-subset.wasm'),
+    ]);
+    await initWithBytes(new Uint8Array(wasmBytes));
+    const latinCodePoints = new Set<number>();
+    for (let codePoint = 0x20; codePoint <= 0x7e; codePoint += 1) latinCodePoints.add(codePoint);
+    const latinBytes = await subsetFontBytes(new Uint8Array(notoBytes), latinCodePoints);
+    const manager = createFontManager({
+      Main: { data: new Uint8Array(notoBytes), fallback: true, family: 'Main' },
+    });
+
+    assert.doesNotThrow(() => manager.assertTextSupported('Main', '請求書'));
+    const beforeCjk = manager.measureText('Main', '請求書', 12);
+    const beforeLatin = manager.measureText('Main', 'Invoice', 12);
+
+    // Coverage is cached from the full face; after the swap only Latin remains.
+    manager.replaceFontBytes('Main', latinBytes);
+    assert.throws(() => manager.assertTextSupported('Main', '請求書'), /missing glyphs/);
+
+    // Widths are cached per face; the bold face has different Latin advances.
+    manager.replaceFontBytes('Main', new Uint8Array(boldBytes));
+    assert.notEqual(manager.measureText('Main', 'Invoice', 12), beforeLatin);
+
+    manager.replaceFontBytes('Main', new Uint8Array(notoBytes));
+    assert.doesNotThrow(() => manager.assertTextSupported('Main', '請求書'));
+    assert.equal(manager.measureText('Main', '請求書', 12), beforeCjk);
+    assert.equal(manager.measureText('Main', 'Invoice', 12), beforeLatin);
   });
 
   it('rejects empty and unknown font configurations', () => {

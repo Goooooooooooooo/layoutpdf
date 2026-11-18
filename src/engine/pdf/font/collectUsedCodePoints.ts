@@ -1,4 +1,9 @@
-import type { RenderDocument, RenderNode } from '@/engine/renderTree/model.js';
+import type {
+  RenderDocument,
+  RenderNode,
+  TextFontRun,
+  TextLayoutLine,
+} from '@/engine/renderTree/model.js';
 
 export function collectRenderedText(document: RenderDocument): string[] {
   const texts = new Set<string>();
@@ -32,22 +37,40 @@ export function collectUsedCodePointsByFont(
     addText(text, codepoints);
   };
 
+  // A subset only needs the code points that its own face will draw. Lines
+  // split by the fallback chain therefore attribute each run separately.
+  const addLine = (fontName: string | undefined, line: TextLayoutLine) => {
+    if (line.runs) {
+      for (const run of line.runs) add(run.fontName, run.text);
+      return;
+    }
+    add(fontName, line.text);
+  };
+  const addRuns = (fontName: string | undefined, runs: TextFontRun[] | undefined, text: string) => {
+    if (runs) {
+      for (const run of runs) add(run.fontName, run.text);
+      return;
+    }
+    add(fontName, text);
+  };
+
   for (const page of document.pages) {
     for (const node of page.nodes) {
       switch (node.kind) {
         case 'text':
-          for (const line of node.layout.lines) add(node.style.fontName, line.text);
+          for (const line of node.layout.lines) addLine(node.style.fontName, line);
           break;
         case 'table':
           for (const cell of node.layout.cells) {
-            for (const line of cell.lines ?? [{ text: cell.text }]) add(cell.fontName, line.text);
-            add(cell.fontName, cell.prefixText ?? '');
+            for (const line of cell.lines ?? []) addLine(cell.fontName, line);
+            if (!cell.lines) addRuns(cell.fontName, cell.textRuns, cell.text);
+            addRuns(cell.fontName, cell.prefixTextRuns, cell.prefixText ?? '');
           }
           break;
         case 'grid':
           for (const cell of node.layout.cells) {
-            for (const line of cell.prefixLines ?? []) add(cell.fontName, line.text);
-            for (const line of cell.lines) add(cell.fontName, line.text);
+            for (const line of cell.prefixLines ?? []) addLine(cell.fontName, line);
+            for (const line of cell.lines) addLine(cell.fontName, line);
           }
           break;
         case 'plugin':

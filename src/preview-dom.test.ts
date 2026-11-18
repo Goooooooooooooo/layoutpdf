@@ -288,4 +288,26 @@ describe('preview-dom', () => {
     assert.equal(root.querySelector('[data-plugin-type]'), null);
     assert.equal(root.textContent?.includes('STAMP'), true);
   });
+
+  it('renders one span per fallback font run', () => {
+    const documentModel = createDocument();
+    const node = documentModel.pages[0].nodes.find(candidate => candidate.kind === 'text');
+    assert.ok(node && node.kind === 'text');
+    node.layout.lines = [{
+      text: 'Invoice 請求書',
+      x: 0,
+      y: 0,
+      width: 30,
+      runs: [
+        { text: 'Invoice ', fontName: 'Latin' },
+        { text: '請求書', fontName: 'Full' },
+      ],
+    }];
+
+    const root = renderDomPreview(documentModel);
+    const runs = [...root.querySelectorAll<HTMLElement>('[data-font-run]')];
+
+    assert.deepEqual(runs.map(run => run.textContent), ['Invoice ', '請求書']);
+    assert.deepEqual(runs.map(run => run.style.fontFamily), ['Latin', 'Full']);
+  });
 });

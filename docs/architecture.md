@@ -327,7 +327,9 @@ validate
 - npm 包不携带字体二进制；开发环境用 `npm run fonts:fetch`，生产由宿主提供 `fontPath` / `baseUrl` / `fontManager`。
 - 示例默认使用 Noto Sans CJK JP。
 - 后续增加独立字体包：CJK SC / TC / KR / Latin。
-- 支持 fallback chain。
+- 支持 fallback chain：按字形覆盖把一行拆成 `runs`，每个 run 记录文本与字体；测量、换行、预览、PDF 绘制和子集化读取同一份 run 数据。
+- 同 `family` 的不同 `weight` 不互为 fallback；跨 family 才回退，`fallback: true` 的字体优先尝试。
+- 测量、run 与字形覆盖都有有界缓存；`replaceFontBytes` 会清空派生缓存，临时子集化不会污染后续测量。
 - 缺字策略：`throw / warn / ignore`，并提供 `onMissingGlyphs`。
 - HarfBuzz 子集化在浏览器和 Node 下都要可用。
   - 浏览器默认从 `/fonts/hb-subset.wasm` 加载。

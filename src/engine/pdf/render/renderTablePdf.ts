@@ -1,9 +1,10 @@
 import { rgb, type PDFFont } from 'pdf-lib';
 import { hex2Rgb } from '@/engine/utils/color.js';
 import { mmToPdfPt } from '@/engine/utils/units.js';
-import type { TableNode } from '@/engine/renderTree/model.js';
+import type { TableNode, TextLayoutLine } from '@/engine/renderTree/model.js';
 import type { PdfNodeRenderContext } from '@/engine/pdf/render/types.js';
 import { drawTextPdf } from '@/engine/pdf/render/drawTextPdf.js';
+import { drawTextRunsPdf } from '@/engine/pdf/render/drawTextRunsPdf.js';
 import { textBaselineFromLineTopPt } from '@/engine/renderTree/textBaseline.js';
 
 function dashArray(style: TableNode['style']['border']['style'], width: number): number[] | undefined {
@@ -34,48 +35,70 @@ export async function renderTablePdf(
         opacity: node.opacity,
       });
     }
-    const textLines = cell.lines ?? (cell.text ? [{
+    const textLines: TextLayoutLine[] = cell.lines ?? (cell.text ? [{
       text: cell.text,
       x: cell.textX,
       y: cell.textY,
       width: cell.textWidth,
     }] : []);
+    const fontName = cell.fontName || context.fontManager.getDefaultFontName();
+    const baselineOffset = textBaselineFromLineTopPt(
+      cell.fontSize,
+      cell.lineHeightMm,
+      context.fontManager.getFontMetrics?.(fontName),
+    );
+    const color = hex2Rgb(cell.color);
+    const fill = rgb(color.r, color.g, color.b);
+    const bold = cell.bold && (cell.syntheticBold ?? true);
     for (const line of textLines) {
       if (!line.text) continue;
-      const fontName = cell.fontName || context.fontManager.getDefaultFontName();
+      const x = mmToPdfPt(node.box.x + line.x);
+      const y = pageHeight - mmToPdfPt(node.box.y + line.y) - baselineOffset;
+      const runs = line.runs ?? (cell.lines ? undefined : cell.textRuns);
+      if (runs) {
+        await drawTextRunsPdf(context.page, runs, {
+          x, y,
+          size: cell.fontSize,
+          color: fill,
+          opacity: node.opacity,
+          fontManager: context.fontManager,
+          pdfDoc: context.pdfDoc,
+          bold,
+        });
+        continue;
+      }
       const font = await context.fontManager.embedPdfFont(context.pdfDoc, fontName) as PDFFont;
-      const baselineOffset = textBaselineFromLineTopPt(
-        cell.fontSize,
-        cell.lineHeightMm,
-        context.fontManager.getFontMetrics?.(fontName),
-      );
-      const color = hex2Rgb(cell.color);
       drawTextPdf(context.page, line.text, {
-        x: mmToPdfPt(node.box.x + line.x),
-        y: pageHeight - mmToPdfPt(node.box.y + line.y) - baselineOffset,
+        x, y,
         size: cell.fontSize,
         font,
-        color: rgb(color.r, color.g, color.b),
+        color: fill,
         opacity: node.opacity,
-      }, cell.bold && (cell.syntheticBold ?? true));
+      }, bold);
     }
     if (cell.prefixText && cell.prefixTextX !== undefined) {
-      const fontName = cell.fontName || context.fontManager.getDefaultFontName();
-      const font = await context.fontManager.embedPdfFont(context.pdfDoc, fontName) as PDFFont;
-      const baselineOffset = textBaselineFromLineTopPt(
-        cell.fontSize,
-        cell.lineHeightMm,
-        context.fontManager.getFontMetrics?.(fontName),
-      );
-      const color = hex2Rgb(cell.color);
-      drawTextPdf(context.page, cell.prefixText, {
-        x: mmToPdfPt(node.box.x + cell.prefixTextX),
-        y: pageHeight - mmToPdfPt(node.box.y + cell.textY) - baselineOffset,
-        size: cell.fontSize,
-        font,
-        color: rgb(color.r, color.g, color.b),
-        opacity: node.opacity,
-      }, cell.bold && (cell.syntheticBold ?? true));
+      const x = mmToPdfPt(node.box.x + cell.prefixTextX);
+      const y = pageHeight - mmToPdfPt(node.box.y + cell.textY) - baselineOffset;
+      if (cell.prefixTextRuns) {
+        await drawTextRunsPdf(context.page, cell.prefixTextRuns, {
+          x, y,
+          size: cell.fontSize,
+          color: fill,
+          opacity: node.opacity,
+          fontManager: context.fontManager,
+          pdfDoc: context.pdfDoc,
+          bold,
+        });
+      } else {
+        const font = await context.fontManager.embedPdfFont(context.pdfDoc, fontName) as PDFFont;
+        drawTextPdf(context.page, cell.prefixText, {
+          x, y,
+          size: cell.fontSize,
+          font,
+          color: fill,
+          opacity: node.opacity,
+        }, bold);
+      }
     }
   }
 
