@@ -51,6 +51,10 @@ for the pre-1.0 version policy.
 - `RenderDocument.version` identifies the node-shape contract and is emitted as
   `RENDER_DOCUMENT_VERSION` (`1`). `resolveRenderTree`, `layoutRenderTree`, and
   pagination preserve it, so workers and hosts can detect a mismatched IR.
+- `npm run bench` runs a repeatable Node benchmark suite for a 500-row table
+  (layout/pagination, PDF with and without CJK subsetting), a 50-page PDF, and
+  a 300-element designer frame. It reports median/p95/min and records the
+  initial baseline in `bench/BASELINE.md` before any optimization.
 
 ### Fixed
 
