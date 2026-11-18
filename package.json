@@ -104,6 +104,7 @@
     "test": "tsx --test \"src/**/*.test.ts\"",
     "pretest": "node scripts/check-fonts.mjs",
     "test:update-golden": "UPDATE_GOLDEN=1 tsx --test \"src/**/golden*.test.ts\"",
+    "bench": "tsx bench/run.ts",
     "check": "npm run typecheck && npm run test",
     "check:package": "publint && attw --pack . --profile esm-only",
     "check:tarball": "node scripts/check-package.mjs",
