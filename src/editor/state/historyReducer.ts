@@ -25,8 +25,17 @@ function collectReferencedAssetIds(template: LayoutPDFTemplate): Set<string> {
   return ids;
 }
 
-function gcAssets(templateFile: { template: LayoutPDFTemplate; assets: Record<string, unknown> }): void {
-  const referenced = collectReferencedAssetIds(templateFile.template);
+function gcAssets(
+  templateFile: { template: LayoutPDFTemplate; assets: Record<string, unknown> },
+  history: HistoryState,
+): void {
+  // Keep assets that any reachable snapshot still references. Undo followed by
+  // redo must not lose the bytes of an element that is only removed from the
+  // current template; they are dropped once the snapshot leaves the history.
+  const referenced = new Set<string>();
+  for (const template of [history.present, ...history.past, ...history.future]) {
+    for (const id of collectReferencedAssetIds(template)) referenced.add(id);
+  }
   for (const key of Object.keys(templateFile.assets)) {
     if (!referenced.has(key)) {
       delete templateFile.assets[key];
@@ -41,8 +50,14 @@ function updateTemplateFromHistory(
   const activePageId = history.present.pages.some(page => page.id === state.activePageId)
     ? state.activePageId
     : history.present.pages[0].id;
-  const templateFile = { ...state.templateFile, template: history.present };
-  gcAssets(templateFile);
+  // Copy the asset map before garbage collection so the previous state keeps
+  // the assets its own snapshots may still reference.
+  const templateFile = {
+    ...state.templateFile,
+    template: history.present,
+    assets: { ...state.templateFile.assets },
+  };
+  gcAssets(templateFile, history);
   return {
     ...state,
     templateFile,
