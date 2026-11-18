@@ -64,11 +64,23 @@ export interface BorderStyle {
   style: 'solid' | 'dashed' | 'dotted';
 }
 
+/** A contiguous slice of a line that must be measured and drawn with one face. */
+export interface TextFontRun {
+  text: string;
+  fontName: string;
+}
+
 export interface TextLayoutLine {
   text: string;
   x: number;
   y: number;
   width: number;
+  /**
+   * Font runs for the line when more than one face is needed. Omitted when the
+   * whole line uses a single face, so existing documents and templates keep
+   * their shape.
+   */
+  runs?: TextFontRun[];
 }
 
 export interface TextLayout {
@@ -284,7 +296,11 @@ export interface TableLayoutCell {
   textWidth: number;
   /** Final wrapped lines. Present for body text cells; DOM/PDF draw these verbatim. */
   lines?: TextLayoutLine[];
+  /** Font runs for a single-line cell whose text needs a fallback face. */
+  textRuns?: TextFontRun[];
   prefixText?: string;
+  /** Font runs for the prefix when it needs a fallback face. */
+  prefixTextRuns?: TextFontRun[];
   prefixTextX?: number;
   prefixTextWidth?: number;
   lineHeightMm: number;

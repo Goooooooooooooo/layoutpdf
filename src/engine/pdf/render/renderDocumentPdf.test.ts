@@ -17,7 +17,7 @@ import { LayoutPDFValidationError } from '../../utils/errors.js';
 import type { PdfFontManager } from '../font/fontManager.js';
 import { createFontManager } from '../font/fontManager.js';
 import { assertCffCharsetIdentity } from '../font/cffCharset.js';
-import { initWithBytes } from '../font/subsetFont.js';
+import { initWithBytes, subsetFontBytes } from '../font/subsetFont.js';
 import type {
   EllipseNode,
   GridNode,
@@ -559,6 +559,59 @@ describe('renderDocumentPdf', () => {
     assert.ok(bytes.length < regularBytes.length + boldBytes.length);
     const loaded = await PDFDocument.load(bytes);
     assert.equal(loaded.getPageCount(), 1);
+  });
+
+  it('draws fallback runs with their own embedded faces', async () => {
+    const [wasmBytes, notoBytes] = await Promise.all([
+      readFile('public/fonts/hb-subset.wasm'),
+      readFile('public/fonts/NotoSansCJKjp-Regular.otf'),
+    ]);
+    await initWithBytes(new Uint8Array(wasmBytes));
+    const latinCodePoints = new Set<number>();
+    for (let codePoint = 0x20; codePoint <= 0x7e; codePoint += 1) latinCodePoints.add(codePoint);
+    const latinBytes = await subsetFontBytes(new Uint8Array(notoBytes), latinCodePoints);
+    const manager = createFontManager({
+      Latin: { data: latinBytes, family: 'Latin', weight: 'normal' },
+      Full: { data: new Uint8Array(notoBytes), fallback: true, family: 'Full' },
+    });
+    const node = textNode();
+    node.text = 'Invoice 請求書';
+    node.style.fontName = 'Latin';
+    node.layout.lines = [{
+      text: node.text,
+      x: 1,
+      y: 1,
+      width: 60,
+      runs: [
+        { text: 'Invoice ', fontName: 'Latin' },
+        { text: '請求書', fontName: 'Full' },
+      ],
+    }];
+    const embeddedNames = new Set<string>();
+    const embedPdfFont = manager.embedPdfFont.bind(manager);
+    manager.embedPdfFont = (pdfDocument, name) => {
+      embeddedNames.add(name);
+      return embedPdfFont(pdfDocument, name);
+    };
+
+    const bytes = await renderDocumentPdf({
+      document: renderDocument([node]),
+      file: templateFile(),
+      fontManager: manager,
+    });
+
+    // Each run embeds the face that layout assigned to it.
+    assert.deepEqual(embeddedNames, new Set(['Latin', 'Full']));
+    const loadingTask = pdfjs.getDocument({ data: bytes });
+    const searchable = await loadingTask.promise;
+    try {
+      const content = await (await searchable.getPage(1)).getTextContent();
+      const text = content.items.map(item => ('str' in item ? item.str : '')).join('');
+      assert.ok(text.includes('Invoice'), `expected Invoice in ${text}`);
+      assert.ok(text.includes('請求書'), `expected CJK fallback text in ${text}`);
+    } finally {
+      await loadingTask.destroy();
+    }
   });
 
   it('embeds subset fonts whose CID-keyed CFF charset keeps CID equal to glyph id', async () => {

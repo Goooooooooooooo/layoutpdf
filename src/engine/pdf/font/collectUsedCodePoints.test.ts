@@ -116,6 +116,40 @@ describe('collectUsedCodePoints', () => {
     assert.equal(byFont.get('Bold')?.has('正'.codePointAt(0)!), false);
   });
 
+  it('attributes code points per fallback run instead of the whole line', () => {
+    const node = textNode('Invoice 請求書');
+    node.layout.lines = [{
+      text: node.text,
+      x: 0,
+      y: 0,
+      width: 50,
+      runs: [
+        { text: 'Invoice ', fontName: 'Latin' },
+        { text: '請求書', fontName: 'Full' },
+      ],
+    }];
+    const doc: RenderDocument = {
+      version: 1,
+      templateId: 't',
+      format,
+      issues: [],
+      pages: [{
+        id: 'p1',
+        sourcePageId: 'p1',
+        continuationIndex: 0,
+        size: { width: 210, height: 297 },
+        padding: [0, 0, 0, 0],
+        background: { kind: 'blank' },
+        nodes: [node],
+      }],
+    };
+
+    const byFont = collectUsedCodePointsByFont(doc, 'Latin');
+    assert.ok(byFont.get('Latin')?.has('I'.codePointAt(0)!));
+    assert.equal(byFont.get('Latin')?.has('請'.codePointAt(0)!), false);
+    assert.ok(byFont.get('Full')?.has('請'.codePointAt(0)!));
+  });
+
   it('extracts the final formatted table text instead of raw computed values', () => {
     const columns: TableColumn[] = [
       { id: 'c1', label: '品名', key: 'item', width: 60, valueType: 'text', align: 'left' },

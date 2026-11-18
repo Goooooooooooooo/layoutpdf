@@ -54,6 +54,12 @@ for the pre-1.0 version policy.
 
 ### Fixed
 
+- Text can mix fonts per glyph. `createFontManager` walks a fallback chain,
+  splits each line into font runs, and measures, previews, draws, and subsets
+  each run with the face that actually covers it. Fonts marked `fallback: true`
+  are tried first, and a different weight of the same family is not used as a
+  glyph fallback. Measurement, run, and coverage caches are bounded and cleared
+  when `replaceFontBytes` swaps a temporary subset.
 - Text wrapping breaks at word boundaries instead of inside Latin words, drops
   the space at a line break, and applies Japanese/Chinese kinsoku: closing
   punctuation never starts a line and opening punctuation never ends one.

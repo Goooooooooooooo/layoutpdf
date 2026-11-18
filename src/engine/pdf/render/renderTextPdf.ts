@@ -4,6 +4,7 @@ import { mmToPdfPt } from '@/engine/utils/units.js';
 import type { TextNode } from '@/engine/renderTree/model.js';
 import type { PdfNodeRenderContext } from '@/engine/pdf/render/types.js';
 import { drawTextPdf } from '@/engine/pdf/render/drawTextPdf.js';
+import { drawTextRunsPdf } from '@/engine/pdf/render/drawTextRunsPdf.js';
 import { textBaselineFromLineTopPt } from '@/engine/renderTree/textBaseline.js';
 
 function dashArray(style: 'solid' | 'dashed' | 'dotted'): number[] | undefined {
@@ -19,7 +20,6 @@ export async function renderTextPdf(
   const { page, fontManager, pdfDoc } = context;
   const pageHeight = page.getHeight();
   const fontName = node.style.fontName || fontManager.getDefaultFontName();
-  const font = await fontManager.embedPdfFont(pdfDoc, fontName) as PDFFont;
   const baselineOffset = textBaselineFromLineTopPt(
     node.style.fontSize,
     node.layout.lineHeightMm,
@@ -51,15 +51,31 @@ export async function renderTextPdf(
   }
 
   const color = hex2Rgb(node.style.color);
+  const fill = rgb(color.r, color.g, color.b);
+  const bold = node.style.fontWeight === 'bold' && (node.style.syntheticBold ?? true);
   for (const line of node.layout.lines) {
     if (!line.text) continue;
+    const x = mmToPdfPt(node.box.x + line.x);
+    const y = pageHeight - mmToPdfPt(node.box.y + line.y) - baselineOffset;
+    if (line.runs) {
+      await drawTextRunsPdf(page, line.runs, {
+        x, y,
+        size: node.style.fontSize,
+        color: fill,
+        opacity: node.opacity,
+        fontManager,
+        pdfDoc,
+        bold,
+      });
+      continue;
+    }
+    const font = await fontManager.embedPdfFont(pdfDoc, fontName) as PDFFont;
     drawTextPdf(page, line.text, {
-      x: mmToPdfPt(node.box.x + line.x),
-      y: pageHeight - mmToPdfPt(node.box.y + line.y) - baselineOffset,
+      x, y,
       size: node.style.fontSize,
       font,
-      color: rgb(color.r, color.g, color.b),
+      color: fill,
       opacity: node.opacity,
-    }, node.style.fontWeight === 'bold' && (node.style.syntheticBold ?? true));
+    }, bold);
   }
 }

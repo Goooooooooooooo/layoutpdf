@@ -18,7 +18,7 @@ import { resolveHeaderAlign } from '@/engine/renderTree/tableAlign.js';
 import { resolveTableFooterBorderEdges } from '@/engine/renderTree/tableFooterBorders.js';
 import { formatNumericPresentation } from '@/engine/renderTree/numericPresentation.js';
 import { tableFooterRowHeight } from '@/engine/renderTree/tableFooterMetrics.js';
-import { wrapMeasuredText } from '@/engine/renderTree/textLayout.js';
+import { resolveTextLineRuns, wrapMeasuredText } from '@/engine/renderTree/textLayout.js';
 
 export const DEFAULT_TABLE_CELL_PADDING_MM = 1.5;
 /** Minimum breathing room between an edge-laid currency symbol and its digits. */
@@ -242,7 +242,14 @@ function createCell(args: {
     x: textX(args.align, args.x, args.width, line.width, args.padding),
     y: textBlockY + index * lineHeightMm,
     width: line.width,
+    ...(line.runs ? { runs: line.runs } : {}),
   }));
+  const textRuns = wrapped
+    ? undefined
+    : resolveTextLineRuns(args.fontManager, face.name, fitted.text);
+  const prefixTextRuns = prefix
+    ? resolveTextLineRuns(args.fontManager, face.name, prefix.text)
+    : undefined;
   return {
     id: args.id,
     role: args.role,
@@ -252,7 +259,9 @@ function createCell(args: {
     textY: textBlockY,
     textWidth: wrapped ? Math.max(0, ...wrapped.map(line => line.width)) : fitted.width,
     lines,
+    ...(textRuns ? { textRuns } : {}),
     prefixText: prefix?.text,
+    ...(prefixTextRuns ? { prefixTextRuns } : {}),
     prefixTextX: prefix ? args.x + args.padding : undefined,
     prefixTextWidth: prefix?.width,
     ...(truncated ? { truncated: true } : {}),

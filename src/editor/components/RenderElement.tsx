@@ -13,6 +13,7 @@ import type {
   RenderNode,
   TableLayoutCell,
   TableNode,
+  TextLayoutLine,
   TextNode,
 } from '@/engine/renderTree/model.js';
 import { DEFAULT_TABLE_CELL_PADDING_MM } from '@/engine/renderTree/tablePresentation.js';
@@ -46,6 +47,20 @@ function borderStyle(
   return {
     border: `${ptToCssPx(border.width, zoom)}px ${border.style} ${border.color}`,
   };
+}
+
+/** Splits a laid-out line into the same font runs the PDF draws. */
+function lineContent(line: TextLayoutLine): ReactNode {
+  if (!line.runs) return line.text;
+  return line.runs.map((run, index) => (
+    <span
+      key={`run:${index}`}
+      data-font-run={run.fontName}
+      style={{ fontFamily: run.fontName }}
+    >
+      {run.text}
+    </span>
+  ));
 }
 
 function textWeightStyle(
@@ -105,7 +120,7 @@ function renderText(node: TextNode, props: RenderElementProps): ReactNode {
             whiteSpace: 'pre',
           }}
         >
-          {line.text}
+          {lineContent(line)}
         </span>
       ))}
     </div>
@@ -396,7 +411,15 @@ function renderTable(node: TableNode, props: RenderElementProps): ReactNode {
                 whiteSpace: 'pre',
               }}
             >
-              {cell.prefixText}
+              {cell.prefixTextRuns
+                ? lineContent({
+                    text: cell.prefixText,
+                    x: 0,
+                    y: 0,
+                    width: cell.prefixTextWidth ?? 0,
+                    runs: cell.prefixTextRuns,
+                  })
+                : cell.prefixText}
             </span>
           ) : null}
           {(cell.lines ?? [{
@@ -404,6 +427,7 @@ function renderTable(node: TableNode, props: RenderElementProps): ReactNode {
             x: cell.textX,
             y: cell.textY,
             width: cell.textWidth,
+            ...(cell.textRuns ? { runs: cell.textRuns } : {}),
           }]).map((line, lineIndex) => (
             <span
               key={`${cell.id}:line:${lineIndex}`}
@@ -422,7 +446,7 @@ function renderTable(node: TableNode, props: RenderElementProps): ReactNode {
                 whiteSpace: 'pre',
               }}
             >
-              {line.text}
+              {lineContent(line)}
             </span>
           ))}
           {editable && cell.role === 'body' && cell.rowIndex !== undefined && cell.columnKey && cell.valueType !== 'formula' ? (
@@ -602,7 +626,7 @@ function renderGrid(node: GridNode, zoom: number): ReactNode {
                 whiteSpace: 'pre',
               }}
             >
-              {line.text}
+              {lineContent(line)}
             </span>
           ))}
         </div>

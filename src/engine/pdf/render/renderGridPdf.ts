@@ -5,6 +5,7 @@ import type { PdfNodeRenderContext } from '@/engine/pdf/render/types.js';
 import { hex2Rgb } from '@/engine/utils/color.js';
 import { mmToPdfPt } from '@/engine/utils/units.js';
 import { drawTextPdf } from '@/engine/pdf/render/drawTextPdf.js';
+import { drawTextRunsPdf } from '@/engine/pdf/render/drawTextRunsPdf.js';
 
 function dashArray(style: 'solid' | 'dashed' | 'dotted'): number[] | undefined {
   if (style === 'dashed') return [4, 3];
@@ -29,19 +30,34 @@ export async function renderGridPdf(node: GridNode, context: PdfNodeRenderContex
         opacity: node.opacity,
       });
     }
+    const fontName = cell.fontName || context.fontManager.getDefaultFontName();
+    const color = hex2Rgb(cell.color);
+    const fill = rgb(color.r, color.g, color.b);
+    const bold = cell.bold && (cell.syntheticBold ?? true);
     for (const line of [...(cell.prefixLines ?? []), ...cell.lines]) {
       if (!line.text) continue;
-      const fontName = cell.fontName || context.fontManager.getDefaultFontName();
+      const x = mmToPdfPt(node.box.x + cell.box.x + line.x);
+      const y = pageHeight - mmToPdfPt(node.box.y + cell.box.y + line.y) - cell.fontSize;
+      if (line.runs) {
+        await drawTextRunsPdf(context.page, line.runs, {
+          x, y,
+          size: cell.fontSize,
+          color: fill,
+          opacity: node.opacity,
+          fontManager: context.fontManager,
+          pdfDoc: context.pdfDoc,
+          bold,
+        });
+        continue;
+      }
       const font = await context.fontManager.embedPdfFont(context.pdfDoc, fontName) as PDFFont;
-      const color = hex2Rgb(cell.color);
       drawTextPdf(context.page, line.text, {
-        x: mmToPdfPt(node.box.x + cell.box.x + line.x),
-        y: pageHeight - mmToPdfPt(node.box.y + cell.box.y + line.y) - cell.fontSize,
+        x, y,
         size: cell.fontSize,
         font,
-        color: rgb(color.r, color.g, color.b),
+        color: fill,
         opacity: node.opacity,
-      }, cell.bold && (cell.syntheticBold ?? true));
+      }, bold);
     }
   }
 
