@@ -10,6 +10,22 @@ export interface FontVerticalMetrics {
   descent: number;
 }
 
+export interface FontFaceInfo {
+  name: string;
+  weight: 'normal' | 'bold';
+}
+
+/** One family and its faces, in registration order. */
+export interface FontFamilyInfo {
+  family: string;
+  /**
+   * Face to store in `props.fontName` for this family. The element's weight
+   * then selects the matching sibling through `resolveFontFace`.
+   */
+  defaultFace: string;
+  faces: FontFaceInfo[];
+}
+
 export interface FontManager {
   getDefaultFontName(): string;
   getFontBytes(name: string): Uint8Array;
@@ -32,6 +48,11 @@ export interface FontManager {
    * input exactly.
    */
   resolveTextRuns?(name: string, text: string): TextFontRun[];
+  /**
+   * Families available for a font picker. Omitted by custom managers, whose
+   * hosts then fall back to free-text font names.
+   */
+  listFontFamilies?(): FontFamilyInfo[];
 }
 
 export interface PdfFontManager extends FontManager {
@@ -126,6 +147,12 @@ export interface FontManagerOptions {
   missingGlyphPolicy?: 'throw' | 'warn' | 'ignore';
   /** Called for every missing-glyph check before the policy is applied. */
   onMissingGlyphs?(fontName: string, missing: readonly string[]): void;
+  /**
+   * Face used when a node does not name a font, e.g. `'Noto Sans CJK JP Regular'`.
+   * Defaults to the first face marked `fallback: true`, then the first font
+   * registered. Keeps documents off a default that depends on object order.
+   */
+  defaultFont?: string;
 }
 
 export function createFontManager(
@@ -146,7 +173,16 @@ export function createFontManager(
     });
   }
 
-  const defaultFontName = Object.entries(fonts).find(([, entry]) => entry.fallback)?.[0]
+  if (entries.size === 0) {
+    throw new Error('At least one binary font is required.');
+  }
+  if (options.defaultFont !== undefined && !entries.has(options.defaultFont)) {
+    throw new Error(
+      `Unknown default font "${options.defaultFont}". Available fonts: ${[...entries.keys()].join(', ')}.`,
+    );
+  }
+  const defaultFontName = options.defaultFont
+    ?? Object.entries(fonts).find(([, entry]) => entry.fallback)?.[0]
     ?? entries.keys().next().value;
   if (!defaultFontName || !entries.has(defaultFontName)) {
     throw new Error('At least one binary font is required.');
@@ -174,8 +210,22 @@ export function createFontManager(
     return result;
   }
 
-  function getFallbackChain(name: string): string[] {
-    const cached = fallbackChains.get(name);
+  function listFontFamilies(): FontFamilyInfo[] {
+    const byFamily = new Map<string, FontFaceInfo[]>();
+    for (const [name, entry] of entries) {
+      const face: FontFaceInfo = { name, weight: entry.weight };
+      const faces = byFamily.get(entry.family);
+      if (faces) faces.push(face);
+      else byFamily.set(entry.family, [face]);
+    }
+    return [...byFamily].map(([family, faces]) => ({
+      family,
+      defaultFace: (faces.find(face => face.weight === 'normal') ?? faces[0]).name,
+      faces,
+    }));
+  }
+
+  function getFallbackChain(name: string): string[] {    const cached = fallbackChains.get(name);
     if (cached) return cached;
     const requested = requireEntry(name);
     // A different weight of the same family is never a glyph fallback; it is
@@ -271,6 +321,8 @@ export function createFontManager(
     getFallbackChain,
 
     resolveTextRuns,
+
+    listFontFamilies,
 
     assertTextSupported(name, text) {
       const policy = options.missingGlyphPolicy ?? 'throw';

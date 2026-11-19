@@ -24,7 +24,15 @@ function resolveFontBase(baseUrl: string): URL {
   return base;
 }
 
-export async function createDefaultFontManager(baseUrl = '/fonts/'): Promise<ReturnType<typeof createFontManager>> {
+export interface DefaultFontManagerOptions {
+  /** Face used when an element does not set `props.fontName`. */
+  defaultFont?: string;
+}
+
+export async function createDefaultFontManager(
+  baseUrl = '/fonts/',
+  options: DefaultFontManagerOptions = {},
+): Promise<ReturnType<typeof createFontManager>> {
   const base = resolveFontBase(baseUrl);
   const [regular, bold] = await Promise.all([
     loadFontBytes(new URL('NotoSansCJKjp-Regular.otf', base).href),
@@ -42,5 +50,5 @@ export async function createDefaultFontManager(baseUrl = '/fonts/'): Promise<Ret
       family: 'Noto Sans CJK JP',
       weight: 'bold',
     },
-  });
+  }, options);
 }

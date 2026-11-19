@@ -160,6 +160,73 @@ describe('createFontManager', () => {
     assert.equal(manager.measureText('Main', 'Invoice', 12), beforeLatin);
   });
 
+  it('honours an explicit default font instead of the registration order', async () => {
+    const bytes = new Uint8Array(await readFile('public/fonts/NotoSansCJKjp-Regular.otf'));
+    const bold = new Uint8Array(await readFile('public/fonts/NotoSansCJKjp-Bold.otf'));
+
+    assert.equal(
+      createFontManager({
+        Regular: { data: bytes, fallback: true, family: 'Body', weight: 'normal' },
+        Bold: { data: bold, family: 'Body', weight: 'bold' },
+        Heading: { data: bold, family: 'Heading', weight: 'normal' },
+      }).getDefaultFontName(),
+      'Regular',
+      'the fallback-marked face stays the default when nothing is configured',
+    );
+
+    const configured = createFontManager({
+      Regular: { data: bytes, fallback: true, family: 'Body', weight: 'normal' },
+      Bold: { data: bold, family: 'Body', weight: 'bold' },
+      Heading: { data: bold, family: 'Heading', weight: 'normal' },
+    }, { defaultFont: 'Heading' });
+    assert.equal(configured.getDefaultFontName(), 'Heading');
+
+    // The configured default does not need a fallback marker: every consumer
+    // reads it through `getDefaultFontName()`, including layout and PDF drawing.
+    assert.equal(configured.resolveFontFace?.('Heading', 'normal')?.name, 'Heading');
+  });
+
+  it('rejects an unknown default font with the available names', async () => {
+    const bytes = new Uint8Array(await readFile('public/fonts/NotoSansCJKjp-Regular.otf'));
+    assert.throws(
+      () => createFontManager(
+        { Regular: { data: bytes, fallback: true } },
+        { defaultFont: 'Missing Face' },
+      ),
+      /Unknown default font "Missing Face"\. Available fonts: Regular\./,
+    );
+  });
+
+  it('lists families in registration order with one default face each', async () => {
+    const [regular, bold] = await Promise.all([
+      readFile('public/fonts/NotoSansCJKjp-Regular.otf'),
+      readFile('public/fonts/NotoSansCJKjp-Bold.otf'),
+    ]);
+    const manager = createFontManager({
+      'Body Bold': { data: new Uint8Array(bold), family: 'Body', weight: 'bold' },
+      'Body Regular': { data: new Uint8Array(regular), family: 'Body', weight: 'normal' },
+      Mono: { data: new Uint8Array(regular), family: 'Mono' },
+    });
+
+    assert.deepEqual(manager.listFontFamilies?.(), [
+      {
+        family: 'Body',
+        // The normal face wins even when the bold face was registered first,
+        // so picking a family keeps the element's own weight toggle working.
+        defaultFace: 'Body Regular',
+        faces: [
+          { name: 'Body Bold', weight: 'bold' },
+          { name: 'Body Regular', weight: 'normal' },
+        ],
+      },
+      {
+        family: 'Mono',
+        defaultFace: 'Mono',
+        faces: [{ name: 'Mono', weight: 'normal' }],
+      },
+    ]);
+  });
+
   it('rejects empty and unknown font configurations', () => {
     assert.throws(() => createFontManager({}), /At least one binary font is required/);
     const manager = createFontManager({

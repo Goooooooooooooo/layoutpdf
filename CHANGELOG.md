@@ -9,6 +9,16 @@ for the pre-1.0 version policy.
 
 ### Added
 
+- The default font can be chosen explicitly instead of depending on object
+  order: `createFontManager(fonts, { defaultFont })`, or `defaultFont` on
+  `createDefaultEngine` / `createNodeEngine`. An unknown name fails with the
+  list of available faces.
+- Text elements expose a font picker in the designer (`props.fontName`). The
+  options come from `FontManager.listFontFamilies()`, which the built-in
+  manager implements; options are families, so the element's weight toggle
+  still selects the matching face. Managers without it fall back to a
+  free-text font name, and clearing the field returns the element to the
+  engine default.
 - Table columns and footers expose decimal places in the property panel, and a
   shared numeric format editor can pick the negative style: `¥-1,000`,
   `-¥1,000`, `(¥1,000)`, or `▲¥1,000`. Currency and calculation elements expose

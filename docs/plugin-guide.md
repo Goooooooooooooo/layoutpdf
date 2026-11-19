@@ -190,7 +190,7 @@ properties: [
 ]
 ```
 
-内置编辑器包括 `text`、`textarea`、`number`、`color`、`select`、`checkbox` 等。后续会开放 `propertyEditors` 注册表，允许宿主注册自己的编辑器。
+内置编辑器包括 `text`、`textarea`、`number`、`color`、`select`、`checkbox`、`switch`、`stepper`、`button-group`、`font` 等。`font` 会从引擎字体管理器的 `listFontFamilies()` 读取可选字体；管理器未实现该成员时退化为自由文本输入。宿主也可通过 `propertyEditors` 注册自己的编辑器。
 
 ## 7. 插件包
 

@@ -628,6 +628,17 @@ logs the missing characters and continues, which is useful while authoring a
 template. `ignore` disables the check for hosts that guarantee coverage
 elsewhere.
 
+Elements that leave `props.fontName` empty use the manager's default face. Pass
+`defaultFont` to pick it explicitly instead of relying on registration order:
+
+```ts
+const fontManager = createFontManager(fonts, { defaultFont: 'Noto Sans CJK JP Regular' });
+```
+
+The designer lists every family the manager reports through
+`listFontFamilies()`, so a self-hosted font set becomes selectable in the
+property panel without extra wiring.
+
 ## Development
 
 ```sh

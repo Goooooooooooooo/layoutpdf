@@ -13,6 +13,7 @@ import SegmentedControl from '@/ui/segmentedControl/SegmentedControl.js';
 import { resolveMessageLabel, t } from '@/i18n/index.js';
 import Disclosure from '@/ui/disclosure/Disclosure.js';
 import InspectorColorField from './InspectorColorField.js';
+import { FontFamilyField } from './FontFamilyField.js';
 
 export function PropertyField({
   definition,
@@ -79,6 +80,16 @@ export function PropertyField({
           value: String(option.value),
           label: resolveMessageLabel(option),
         }))}
+      />
+    );
+  } else if (definition.editor === 'font') {
+    editor = (
+      <FontFamilyField
+        id={id}
+        value={value}
+        mixed={mixed}
+        disabled={disabled}
+        onChange={next => onChange(next, historyGroup)}
       />
     );
   } else if (definition.editor === 'textarea') {
