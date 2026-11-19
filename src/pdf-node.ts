@@ -87,6 +87,8 @@ export interface CreateDefaultNodeFontManagerOptions {
   regularPath: string | URL;
   boldPath?: string | URL;
   family?: string;
+  /** Face used when an element does not set `props.fontName`. */
+  defaultFont?: string;
 }
 
 /**
@@ -113,7 +115,7 @@ export async function createDefaultNodeFontManager(
       weight: 'bold',
     });
   }
-  return createNodeFontManager(sources);
+  return createNodeFontManager(sources, { defaultFont: options.defaultFont });
 }
 
 export function resolveBundledNodeFontPath(
@@ -211,6 +213,11 @@ export interface CreateNodeEngineOptions
   boldFontPath?: string | URL;
   /** Family name used with `fontPath` / `boldFontPath`. */
   familyName?: string;
+  /**
+   * Face used when an element does not set `props.fontName`. Defaults to the
+   * first face marked `fallback: true`, then the first source.
+   */
+  defaultFont?: string;
   plugins?: PluginRegistry | readonly AnyLayoutPDFPlugin[];
   /**
    * HarfBuzz subsetting for smaller PDFs. Defaults to `true`; silently falls
@@ -222,15 +229,24 @@ export interface CreateNodeEngineOptions
 async function resolveNodeFontManager(
   options: CreateNodeEngineOptions,
 ): Promise<PdfFontManager> {
-  if (options.fontManager) return options.fontManager;
+  if (options.fontManager) {
+    if (options.defaultFont) {
+      throw new Error(
+        'createNodeEngine: defaultFont cannot be combined with a prebuilt fontManager. '
+        + 'Pass defaultFont to createFontManager instead.',
+      );
+    }
+    return options.fontManager;
+  }
   if (options.fonts && options.fonts.length > 0) {
-    return createNodeFontManager(options.fonts);
+    return createNodeFontManager(options.fonts, { defaultFont: options.defaultFont });
   }
   if (options.fontPath) {
     return createDefaultNodeFontManager({
       regularPath: options.fontPath,
       boldPath: options.boldFontPath,
       family: options.familyName,
+      defaultFont: options.defaultFont,
     });
   }
 
@@ -239,6 +255,7 @@ async function resolveNodeFontManager(
     return createDefaultNodeFontManager({
       regularPath: bundledRegular,
       boldPath: resolveBundledNodeFontPath('NotoSansCJKjp-Bold.otf'),
+      defaultFont: options.defaultFont,
     });
   }
 
@@ -261,6 +278,7 @@ export async function createNodeEngine(
     fontPath,
     boldFontPath,
     familyName,
+    defaultFont,
     plugins,
     fontSubsetting,
     ...engineOptions

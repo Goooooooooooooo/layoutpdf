@@ -21,6 +21,7 @@ import { useDocumentState } from '@/editor/hooks/useDocumentState.js';
 import DocumentWorkspace from '@/editor/components/DocumentWorkspace.js';
 import { PluginRendererProvider } from '@/editor/components/pluginRendererContext.js';
 import { PropertyEditorsContext } from '@/editor/components/propertyPanel/propertyEditorContext.js';
+import { FontFamiliesContext } from '@/editor/components/propertyPanel/FontFamilyField.js';
 import { createEditorClipboardPayload, instantiateEditorClipboard } from '@/editor/clipboard/editorClipboard.js';
 import type { EditorClipboardPayload } from '@/editor/clipboard/editorClipboard.js';
 import type { ReusableBlock } from '@/storage/reusableBlockRepository.js';
@@ -146,6 +147,10 @@ function DesignerContent({
   useSyncExternalStore(subscribeAppLocale, getCurrentAppLocale, getCurrentAppLocale);
 
   const activeInput = getActiveInput(state.inputs);
+  const fontFamilies = useMemo(
+    () => engine.fontManager.listFontFamilies?.() ?? [],
+    [engine.fontManager],
+  );
   const settings = useMemo<SettingsApi>(() => ({
     defaultSavePath: null,
     setDefaultSavePath: () => undefined,
@@ -338,19 +343,21 @@ function DesignerContent({
           </header>
           {errorMessage ? <div className="layoutpdf-designer-error" role="alert">{errorMessage}</div> : null}
           <PluginRendererProvider value={engine.domRenderers}>
-            <DocumentWorkspace
-              state={state}
-              document={renderDocument}
-              dispatch={dispatch}
-              plugins={engine.plugins}
-              presets={presets}
-              reusableBlocks={blocks}
-              onSaveReusableBlock={saveReusableBlock}
-              onDeleteReusableBlock={deleteReusableBlock}
-              hasClipboard={clipboard !== null}
-              onCopy={handleCopy}
-              onPaste={handlePaste}
-            />
+            <FontFamiliesContext.Provider value={fontFamilies}>
+              <DocumentWorkspace
+                state={state}
+                document={renderDocument}
+                dispatch={dispatch}
+                plugins={engine.plugins}
+                presets={presets}
+                reusableBlocks={blocks}
+                onSaveReusableBlock={saveReusableBlock}
+                onDeleteReusableBlock={deleteReusableBlock}
+                hasClipboard={clipboard !== null}
+                onCopy={handleCopy}
+                onPaste={handlePaste}
+              />
+            </FontFamiliesContext.Provider>
           </PluginRendererProvider>
         </div>
       </PropertyEditorsContext.Provider>

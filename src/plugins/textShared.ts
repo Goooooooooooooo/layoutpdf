@@ -54,6 +54,14 @@ export function defaultTextVisualProps(
 
 export function textStyleProperties(): PropertyDefinition[] {
   return [
+    {
+      path: 'props.fontName',
+      label: '字体',
+      labelKey: 'property.common.fontFamily',
+      editor: 'font',
+      group: 'style',
+      cleareable: true,
+    },
     { path: 'props.fontSize', label: '字号', labelKey: 'property.common.fontSize', editor: 'stepper', min: 6, max: 72, step: 1, group: 'style' },
     { path: 'props.color', label: '文字色', labelKey: 'property.common.textColor', editor: 'color', group: 'style' },
     {

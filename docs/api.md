@@ -276,6 +276,7 @@ import { createDefaultEngine } from 'layoutpdf';
 
 const engine = await createDefaultEngine({
   plugins,                    // optional; defaults to the full built-in set
+  defaultFont: 'Noto Sans CJK JP Regular',   // optional default face
   format: {                   // optional document-level overrides
     locale: 'zh-CN',
     currency: 'CNY',
@@ -303,6 +304,43 @@ preview, PDF drawing, and subsetting agree on which font paints which glyphs.
 Custom font managers may implement the optional `getFallbackChain` and
 `resolveTextRuns` members to opt in; without them the manager keeps the
 single-face behaviour.
+
+### Choosing the default font
+
+Elements that leave `props.fontName` empty use the manager's default face. By
+default that is the first face marked `fallback: true`, then the first
+registered font. Relying on registration order is fragile, so pass
+`defaultFont` explicitly:
+
+```ts
+const fontManager = createFontManager({
+  'Body Regular': { data: regular, family: 'Body', weight: 'normal' },
+  'Body Bold': { data: bold, family: 'Body', weight: 'bold' },
+  'Heading': { data: heading, family: 'Heading', weight: 'normal' },
+}, { defaultFont: 'Body Regular' });
+
+// Browser default engine
+const engine = await createDefaultEngine({ defaultFont: 'Noto Sans CJK JP Regular' });
+
+// Node
+const nodeEngine = await createNodeEngine({
+  fontPath: '/srv/fonts/NotoSansCJKjp-Regular.otf',
+  defaultFont: 'Noto Sans CJK JP Regular',
+});
+```
+
+`defaultFont` is a face name and must exist; an unknown name fails with the
+list of available faces. `defaultFont` cannot be combined with a prebuilt
+`fontManager` — pass it to `createFontManager` instead.
+
+The designer's property panel offers a font picker whenever the manager
+implements `listFontFamilies()`. Options are families, not faces: the element's
+weight toggle selects the sibling face, so choosing a family does not pin it to
+Bold. Managers without that member fall back to a free-text font name.
+
+The DOM preview writes the resolved face name to CSS `font-family`, so exact
+preview rendering needs a matching `@font-face` in the host page. PDF output
+embeds the real font bytes regardless.
 
 `DocumentEngine` exposes:
 
@@ -389,6 +427,7 @@ const pdf = await engine
 | `fontManager` | Prebuilt font manager; wins over other font options |
 | `fonts` | Array of `{ name, path, family?, weight?, fallback? }` |
 | `fontPath` / `boldFontPath` / `familyName` | Single regular/bold pair |
+| `defaultFont` | Face used when an element leaves `props.fontName` empty |
 | `fontSubsetting` | `boolean` or `{ wasmPath?, wasmBytes? }`; defaults to `true` |
 | `plugins` | Plugin registry/array; defaults to all built-ins |
 | `format` | Document-level locale/currency/time-zone overrides |

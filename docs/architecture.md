@@ -327,6 +327,8 @@ validate
 - npm 包不携带字体二进制；开发环境用 `npm run fonts:fetch`，生产由宿主提供 `fontPath` / `baseUrl` / `fontManager`。
 - 示例默认使用 Noto Sans CJK JP。
 - 后续增加独立字体包：CJK SC / TC / KR / Latin。
+- 默认字体可显式配置：`createFontManager({...}, { defaultFont })`，或通过 `createDefaultEngine` / `createNodeEngine` 的 `defaultFont` 传入。未配置时回退到第一个 `fallback: true` 的字体，再回退到注册顺序。
+- 设计器属性面板通过 `listFontFamilies()` 列出可选 family；元素自身字重选择同 family 的对应字面，不会把元素锁死在 Bold。
 - 支持 fallback chain：按字形覆盖把一行拆成 `runs`，每个 run 记录文本与字体；测量、换行、预览、PDF 绘制和子集化读取同一份 run 数据。
 - 同 `family` 的不同 `weight` 不互为 fallback；跨 family 才回退，`fallback: true` 的字体优先尝试。
 - 测量、run 与字形覆盖都有有界缓存；`replaceFontBytes` 会清空派生缓存，临时子集化不会污染后续测量。
@@ -489,8 +491,9 @@ validate
 - ✅ 抽出 `preview-react` 公开预览入口。
 - ✅ 框架无关的 `preview-dom`。
 - ✅ 引擎级 `format`（locale / currency / timeZone）配置。
+- ✅ 引擎级字体配置：`defaultFont` 显式指定默认字面，设计器提供 `font` 属性编辑器。
 - ✅ 模板迁移 `migrateTemplate`、插件 `apiVersion`、IR `RenderDocument.version`。
-- ⏳ 引擎级字体配置与插件清单懒加载。
+- ⏳ 插件清单懒加载。
 
 ### M2：PDF 产品化（约 1 周）
 
@@ -501,7 +504,8 @@ validate
 - ✅ Worker bundler 示例（`examples/worker`）。
 - ✅ CI 与 `npm run smoke` 构建冒烟。
 - ✅ 缺字策略（`missingGlyphPolicy` + `onMissingGlyphs`）。
-- 字体包（CJK SC / TC / KR / Latin）与真正的 fallback chain。
+- ✅ 真正的 fallback chain（`getFallbackChain` + `resolveTextRuns`）。
+- 字体包（CJK SC / TC / KR / Latin）。
 
 ### M3：Designer 产品化（约 1 周）
 
@@ -534,11 +538,12 @@ validate
 | 模板编辑 | `TemplateBuilder` + `TemplateEditor`（页面/元素 add、update、remove、move、duplicate） | 更多批量/布局辅助 API |
 | 插件 | 18 个默认插件（basic + business） | 插件可贡献渲染器；插件清单懒加载 |
 | 插件渲染扩展 | `plugin` 节点 + RendererRegistry | 保持 |
-| 预览 | `preview-react` + `preview-dom` + DOM 插件渲染器 | 主题样式、更多表单控件 |
-| PDF | pdf-lib + CJK 子集化 | 独立字体包、真正的 fallback chain |
+| 预览 | `preview-react` + `preview-dom` + DOM 插件渲染器 | 更多表单控件 |
+| PDF | pdf-lib + CJK 子集化 | 独立字体包（CJK SC / TC / KR / Latin） |
+| 字体 | `createFontManager`（fallback chain、显式 `defaultFont`）+ 设计器字体选择器 | 保持；语言包拆分见 PDF 行 |
 | Designer | React + Web Component | 更多设计器细节 |
 | 包入口 | 已补 `pdf`、`pdf/node`、`pdf/worker`、`preview-react`、`preview-dom`、`plugins/presets/i18n`、schema | 保持 |
-| 测试 | `npm test` + 357 个测试（含 Node PDF、Worker、导出选项、golden PDF、DOM 预览、设计器运行时、缺字策略、TemplateEditor） | 更多视觉回归 |
+| 测试 | `npm test` + 530 个测试（含 Node PDF、Worker、导出选项、golden PDF、DOM 预览、设计器运行时与状态机、缺字策略、字体回退、TemplateEditor） | 更多视觉回归 |
 | 文档 | README + 架构文档 + 插件指南 + API reference + schema + 发布清单 | 示例矩阵、recipes |
 | 语言/区域 | 引擎级 `format` 覆盖 + 设计器 `locale` | 保持 |
 | 构建 | 仅 ESM；字体不再进入 npm tarball | Node 入口补 CJS 或明确只支持 ESM |
